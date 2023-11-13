@@ -12,7 +12,10 @@ target_include_directories(
         INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/includes/
 )
-
+include_directories(
+        ${CMAKE_CURRENT_SOURCE_DIR}/
+        ${CMAKE_CURRENT_SOURCE_DIR}/includes/
+)
 
 add_subdirectory(dlfc)
 add_subdirectory(libpath)
