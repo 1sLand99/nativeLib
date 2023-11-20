@@ -27,6 +27,17 @@ bool fileUtils::getFiles(const std::string& path, std::vector<std::string>& file
     closedir(pdr);
     return true;
 }
+string fileUtils::readlinkatPath(const string& path){
+    char buff[PATH_MAX];
+    long len = readlinkat(
+            AT_FDCWD,
+            path.c_str(), buff, PATH_MAX - 1);
+    if (len > 0) {
+        buff[len] = '\0';
+        return {buff};
+    }
+    return {};
+}
 bool fileUtils::setFilePermissions(const std::string& filePath, std::filesystem::perms permissions) {
     // 检查文件是否存在
     if (!isFileExists(filePath)) {

@@ -25,6 +25,7 @@ public:
     static bool savefile(const char* filePath,size_t size,size_t start,bool isDele);
     static string get_file_name(int fd,pid_t pid);
     static bool isFileExists(const string& name);
+    static string readlinkatPath(const string& path);
     static bool file_include(const char* filePath, const std::vector<std::string>& list, std::string& buff);
 };
 
