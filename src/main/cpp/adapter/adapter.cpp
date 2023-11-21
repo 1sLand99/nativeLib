@@ -13,21 +13,16 @@ JavaVM *mVm;
 JNIEnv *mEnv;
 
 
-static int SDK_INT = -1;
 
-int get_sdk_level() {
-    if (SDK_INT > 0) {
-        return SDK_INT;
-    }
-    char sdk[PROP_VALUE_MAX] = {0};
-    __system_property_get("ro.build.version.sdk", sdk);
-    char* endptr;
-    SDK_INT = (int)strtol(sdk, &endptr, 10);
-    if (*endptr != '\0') {
-        // 转换失败，处理错误
-        return -1;
-    }
-    return SDK_INT;
+int32_t get_sdk_level() {
+    static int32_t api_level = []() {
+        char prop_value[PROP_VALUE_MAX];
+        __system_property_get("ro.build.version.sdk", prop_value);
+        int base = atoi(prop_value);
+        __system_property_get("ro.build.version.preview_sdk", prop_value);
+        return base + atoi(prop_value);
+    }();
+    return api_level;
 }
 
 

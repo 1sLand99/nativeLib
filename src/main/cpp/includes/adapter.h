@@ -25,7 +25,7 @@ extern JNIEnv *mEnv;
 JNIEnv *getRunTimeEnv();
 JNIEnv *ensureEnvCreated();
 void DetachCurrentThread();
-int get_sdk_level();
+int32_t get_sdk_level();
 
 namespace ZhenxiRunTime{
     /**

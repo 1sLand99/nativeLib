@@ -27,4 +27,7 @@
 #define ANDROID_SL 32
 //android 13
 #define ANDROID_T 33
+//14 Upside Down Cake
+#define ANDROID_U 34
+
 #endif //QCONTAINER_PRO_VERSION_H
