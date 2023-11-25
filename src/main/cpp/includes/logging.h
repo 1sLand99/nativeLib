@@ -13,10 +13,7 @@
 #endif
 
 
-#define CHECK(x) \
-  if (UNLIKELY(!(x))) /*  NOLINT*/ \
-    w::LogMessageFatal("", __LINE__).stream() \
-        << "Check failed: " #x << " "
+
 
 #define CHECK_OP(LHS, RHS, OP) \
   for (auto _values = zhenxi::MakeEagerEvaluator(LHS, RHS); \

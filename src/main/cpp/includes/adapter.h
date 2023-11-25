@@ -14,6 +14,7 @@
 #include <climits>
 #include <iostream>
 #include <fstream>
+#include <macros.h>
 
 
 #ifndef ZHENXIRUNTIME_ADAPTER_H
@@ -27,7 +28,7 @@ JNIEnv *ensureEnvCreated();
 void DetachCurrentThread();
 int32_t get_sdk_level();
 
-namespace ZhenxiRunTime{
+namespace ZhenxiRuntime{
     /**
      * 打印具体的退出原因
      */

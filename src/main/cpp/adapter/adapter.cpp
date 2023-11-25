@@ -59,7 +59,7 @@ void DetachCurrentThread() {
     mVm->DetachCurrentThread();
 }
 
-void ZhenxiRunTime::getExitSignInfo(const std::string& msg,int sign,
+void ZhenxiRuntime::getExitSignInfo(const std::string& msg,int sign,
                                     void* address,void* context,int pid,int tid){
 #if  ZHENXI_BUILD_TYPE == DEBUG
     void *cache = nullptr;

@@ -66,7 +66,9 @@ namespace lsplant {
                 local_ref_ = ptr;
             }
         }
-
+        bool IsNull() {
+            return local_ref_ == nullptr;
+        }
         [[nodiscard]] T release() {
             T localRef = local_ref_;
             local_ref_ = nullptr;
@@ -1248,6 +1250,73 @@ namespace lsplant {
         return JNI_GetObjectField(
                 env, o, JNI_GetFieldID(env, JNI_GetObjectClass(env, o), field_name, field_class));
     }
+
+    class JNIHelper {
+    public:
+        static bool ExceptionCheck(JNIEnv *env) {
+            if(env->ExceptionCheck()) {
+                LOGE("JNI Exception: ");
+                env->ExceptionDescribe();
+                env->ExceptionClear();
+                return true;
+            }
+            return false;
+        }
+
+        static bool ThrowException(JNIEnv *env, const char *className, const char *errMsg) {
+            if(env->ExceptionCheck()) {
+                LOGW("Ignoring JNI exception: ");
+                env->ExceptionDescribe();
+                env->ExceptionClear();
+            }
+            ScopedLocalRef<jclass> exceptionClass(env, env->FindClass(className));
+            if(exceptionClass == nullptr) {
+                return false;
+            }
+            return env->ThrowNew(exceptionClass.get(), errMsg) == JNI_OK;
+        }
+
+        static bool RegisterNativeMethods(JNIEnv *env, const char *className, JNINativeMethod *methods, int numMethods) {
+            ScopedLocalRef<jclass> clazz(env, env->FindClass(className));
+            if(clazz == nullptr) {
+                return false;
+            }
+            if(env->RegisterNatives(clazz.get(), methods, numMethods) < 0) {
+                LOGE("Failed to register native methods of class %s", className);
+                return false;
+            }
+            return true;
+        }
+
+        static jclass FindClassFromClassLoader(JNIEnv* env, const char* name, jobject loader,jmethodID id) {
+            ScopedLocalRef<jstring> name_ref(env, env->NewStringUTF(name));
+            return static_cast<jclass>(env->CallObjectMethod(loader,id, name_ref.get()));
+        }
+
+        static void AssertPendingException(JNIEnv *env) {
+            CHECK_FOR_JNI(env->ExceptionCheck(), "Assert pending exception failed");
+        }
+
+        static void AssertAndClearPendingException(JNIEnv *env) {
+            AssertPendingException(env);
+            LOGE("Pending exception: ");
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+        }
+
+        static bool GetMethodID(JNIEnv *env, jclass clazz, const char *name, const char *signature, bool is_static, jmethodID *out) {
+            jmethodID method = is_static ? env->GetStaticMethodID(clazz, name, signature) : env->GetMethodID(clazz, name, signature);
+            if (method == nullptr) {
+                AssertPendingException(env);
+                return false;
+            }
+            *out = method;
+            return true;
+        }
+
+    private:
+    DISALLOW_IMPLICIT_CONSTRUCTORS(JNIHelper);
+    };
 
 }  // namespace lsplant
 

@@ -8,6 +8,26 @@
 
 #define TAG "Zhenxi"
 
+#define FATAL(...) do {\
+LOGE("*** Runtime aborting because of fatal error: ");\
+LOGE(__VA_ARGS__);\
+LOGE("Aborting...");\
+abort();\
+} while(0)
+
+#define FATAL_FOR_JNI(...) do {\
+LOGE("*** Runtime aborting because of fatal error: ");\
+LOGE(__VA_ARGS__);\
+if(((env)->ExceptionCheck())) {\
+LOGE("JNI ERROR: ");\
+(env)->ExceptionDescribe();\
+}\
+env->FatalError("FATAL_FOR_JNI called.");\
+} while(0)
+
+#define CHECK(op, ...) do { if((!(op))) { FATAL(__VA_ARGS__); } } while(0)
+#define CHECK_FOR_JNI(op, ...) do { if((!(op))) { FATAL_FOR_JNI(__VA_ARGS__); } } while(0)
+
 
 #ifdef ZHENXI_BUILD_TYPE_NOLOG
 
