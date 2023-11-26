@@ -1255,20 +1255,25 @@ namespace lsplant {
     public:
         static bool ExceptionCheck(JNIEnv *env) {
             if(env->ExceptionCheck()) {
-                LOGE("JNI Exception: ");
+                std::string errorInfo = "JNI Exception in ";
+                // 获取并打印异常信息
+                jthrowable exception = env->ExceptionOccurred();
                 env->ExceptionDescribe();
                 env->ExceptionClear();
+                jclass exceptionClass = env->GetObjectClass(exception);
+                jmethodID getMessage = env->GetMethodID(exceptionClass, "getMessage", "()Ljava/lang/String;");
+                jstring message = (jstring)env->CallObjectMethod(exception, getMessage);
+                const char* messageStr = env->GetStringUTFChars(message, NULL);
+                errorInfo += messageStr;
+                env->ReleaseStringUTFChars(message, messageStr);
+                LOGE("%s", errorInfo.c_str());
                 return true;
             }
             return false;
         }
 
         static bool ThrowException(JNIEnv *env, const char *className, const char *errMsg) {
-            if(env->ExceptionCheck()) {
-                LOGW("Ignoring JNI exception: ");
-                env->ExceptionDescribe();
-                env->ExceptionClear();
-            }
+            JNIHelper::ExceptionCheck(env);
             ScopedLocalRef<jclass> exceptionClass(env, env->FindClass(className));
             if(exceptionClass == nullptr) {
                 return false;
@@ -1290,7 +1295,14 @@ namespace lsplant {
 
         static jclass FindClassFromClassLoader(JNIEnv* env, const char* name, jobject loader,jmethodID id) {
             ScopedLocalRef<jstring> name_ref(env, env->NewStringUTF(name));
-            return static_cast<jclass>(env->CallObjectMethod(loader,id, name_ref.get()));
+            if (JNIHelper::ExceptionCheck(env)) {
+                return nullptr;
+            }
+            jobject obj = env->CallObjectMethod(loader, id, name_ref.get());
+            if (JNIHelper::ExceptionCheck(env)) {
+                return nullptr;
+            }
+            return static_cast<jclass>(obj);
         }
 
         static void AssertPendingException(JNIEnv *env) {
