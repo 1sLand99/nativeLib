@@ -1255,9 +1255,9 @@ namespace lsplant {
     public:
         static bool ExceptionCheck(JNIEnv *env) {
             if(env->ExceptionCheck()) {
-                std::string errorInfo = "JNI Exception in ";
                 // 获取并打印异常信息
                 jthrowable exception = env->ExceptionOccurred();
+                std::string errorInfo = "JNI Exception in ";
                 env->ExceptionDescribe();
                 env->ExceptionClear();
                 jclass exceptionClass = env->GetObjectClass(exception);
@@ -1265,8 +1265,8 @@ namespace lsplant {
                 jstring message = (jstring)env->CallObjectMethod(exception, getMessage);
                 const char* messageStr = env->GetStringUTFChars(message, NULL);
                 errorInfo += messageStr;
-                env->ReleaseStringUTFChars(message, messageStr);
                 LOGE("%s", errorInfo.c_str());
+                env->ReleaseStringUTFChars(message, messageStr);
                 return true;
             }
             return false;
