@@ -5,19 +5,21 @@
 #ifndef QCONTAINER_PRO_LIBPATH_H
 #define QCONTAINER_PRO_LIBPATH_H
 
+#include <string>
 
-char *getlibArtPath();
+using namespace std;
 
-char *getLinkerPath();
+string getlibArtPath();
 
-//这里面包含了一些 对string操作的方法
-char *getlibcPlusPath();
+string getLinkerPath();
 
-char *getlibcPath();
+string getlibcPlusPath();
 
-char *getMediaPath();
+string getlibcPath();
 
-char *getJitPath();
+string getMediaPath();
+
+string getJitPath();
 
 
 #endif //QCONTAINER_PRO_LIBPATH_H

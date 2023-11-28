@@ -278,12 +278,12 @@ bool on_found_linker_syscall_arm(const char *path, int num, void *func) {
 #endif
 
 void linkerHandler::init() {
-    const char *linker = getLinkerPath();
-    if (!relocate_linker(linker)) {
+    auto linker = getLinkerPath();
+    if (!relocate_linker(linker.c_str())) {
 #if defined(__aarch64__)
-        findSyscalls(linker, on_found_linker_syscall_arch64);
+        findSyscalls(linker.c_str(), on_found_linker_syscall_arch64);
 #else
-        findSyscalls(linker, on_found_linker_syscall_arm);
+        findSyscalls(linker.c_str(), on_found_linker_syscall_arm);
 #endif
     }
     LOG(ERROR) << ">>>>>>>>> linker handler init  finish!  ";
