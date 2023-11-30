@@ -47,10 +47,10 @@ bool disable_profile_saver() {
                                  reinterpret_cast<void *>(replace_process_profiling_info),
                                  reinterpret_cast<void **>(&backup));
     if (ret) {
-        LOGI("Successfully disabled ProfileSaver");
+        LOGI("hook profile save disabled jit success");
         return true;
     } else {
-        LOGE("Failed to disable ProfileSaver");
+        LOGE("failed to hook disable jit profile save");
         return false;
     }
 }
