@@ -29,11 +29,15 @@ add_subdirectory(findsyscall)
 add_subdirectory(hidemaps)
 add_subdirectory(proc_maps_parser)
 add_subdirectory(antiJit)
+add_subdirectory(tracer)
 
 
 
 target_link_libraries(
         nativeLib
         INTERFACE
-        dlfc libpath adapter utils runtimehook raw_syscall xunwind linkerHandler findsyscall mapshidepath proc_maps_parser antijit
+
+        dlfc libpath adapter utils runtimehook raw_syscall xunwind
+        linkerHandler findsyscall mapshidepath proc_maps_parser antijit
+        tracer
 )
