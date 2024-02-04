@@ -6,6 +6,11 @@
 #include <string>
 #include <string_view>
 
+#include "macros.h"
+#include "ZhenxiLog.h"
+#include "logging.h"
+
+
 #define LOG_TAG "Zhenxi"
 
 #pragma clang diagnostic push
@@ -1294,6 +1299,7 @@ namespace lsplant {
         }
 
         static jclass FindClassFromClassLoader(JNIEnv* env, const char* name, jobject loader,jmethodID id) {
+            if(id == nullptr) return nullptr;
             ScopedLocalRef<jstring> name_ref(env, env->NewStringUTF(name));
             if (JNIHelper::ExceptionCheck(env)) {
                 return nullptr;
@@ -1311,7 +1317,7 @@ namespace lsplant {
 
         static void AssertAndClearPendingException(JNIEnv *env) {
             AssertPendingException(env);
-            LOGE("Pending exception: ");
+            //LOGE("Pending exception: ");
             env->ExceptionDescribe();
             env->ExceptionClear();
         }
