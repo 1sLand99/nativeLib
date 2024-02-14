@@ -44,6 +44,7 @@ procmaps_iterator* pmparser_parse(int pid){
     while (fgets(buf, PROCMAPS_LINE_MAX_LENGTH, file) != NULL) {
 		//allocate a node
 		tmp=(procmaps_struct*)malloc(sizeof(procmaps_struct));
+        strcpy(tmp->orig_path,buf);
 		//fill the node
 		_pmparser_split_line(buf,addr1,addr2,perm,offset, dev,inode,pathname);
 		//printf("#%s",buf);
