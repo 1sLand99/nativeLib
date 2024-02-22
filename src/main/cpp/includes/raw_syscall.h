@@ -12,7 +12,6 @@
 #include <asm/unistd.h>
 #include <sys/syscall.h>
 
-extern "C" {
-INLINE  extern inline long raw_syscall(long __number, ...);
-}
+INLINE long raw_syscall(long __number, ...);
+
 #endif //HUNTER_RAW_SYSCALL_H
