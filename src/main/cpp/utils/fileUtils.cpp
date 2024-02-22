@@ -4,6 +4,7 @@
 
 #include "fileUtils.h"
 #include "appUtils.h"
+#include "mylibc.h"
 
 #include <libgen.h>
 
@@ -29,9 +30,20 @@ bool fileUtils::getFiles(const std::string& path, std::vector<std::string>& file
 }
 string fileUtils::readlinkatPath(const string& path){
     char buff[PATH_MAX];
-    long len = readlinkat(
+    long len = raw_syscall(__NR_readlinkat,
             AT_FDCWD,
             path.c_str(), buff, PATH_MAX - 1);
+    if (len > 0) {
+        buff[len] = '\0';
+        return {buff};
+    }
+    return {};
+}
+string fileUtils::readlinkatPath(int fd){
+    char buff[PATH_MAX] = {0};
+    std::string fdPath("/proc/");
+    fdPath.append(to_string(getpid())).append("/fd/").append(to_string(fd));
+    long len = raw_syscall(__NR_readlinkat, AT_FDCWD, fdPath.c_str(), buff, PATH_MAX);
     if (len > 0) {
         buff[len] = '\0';
         return {buff};

@@ -26,6 +26,7 @@ public:
     static string get_file_name(int fd,pid_t pid);
     static bool isFileExists(const string& name);
     static string readlinkatPath(const string& path);
+    static string readlinkatPath(int fd);
     static bool file_include(const char* filePath, const std::vector<std::string>& list, std::string& buff);
 };
 
