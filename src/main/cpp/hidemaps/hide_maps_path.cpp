@@ -178,28 +178,26 @@ namespace ZhenxiRuntime::MapsItemHide {
                 size = sizeof(Elf32_Ehdr);
             }
 #endif
-            //需要先修改权限,否则读取elf头可能会sign11
-            bool ret = mProtectDef((size_t) addr, size);
-            if (!ret) {
-                LOGE("mprotect elf header fail %s", maps_tmp->pathname)
-                success = false;
-                continue;
-            }
+            //LOGI("mprotect elf header success %s  ", maps_tmp->pathname)
             //是elf头
-            if (
-                    (((char *) addr)[0] == ELFMAG0) &&
-                    ((char *) addr)[1] == ELFMAG1 &&
-                    ((char *) addr)[2] == ELFMAG2 &&
-                    ((char *) addr)[3] == ELFMAG3) {
+            if ((((char *) addr)[0] == ELFMAG0) && ((char *) addr)[1] == ELFMAG1 &&
+                    ((char *) addr)[2] == ELFMAG2 && ((char *) addr)[3] == ELFMAG3) {
+                //需要先修改权限,否则读取elf头可能会sign11
+                bool ret = mProtectDef((size_t) addr, size);
+                if (!ret) {
+                    LOGE("mprotect elf header fail %s %s ", maps_tmp->pathname, strerror(errno))
+                    success = false;
+                    continue;
+                }
                 //抹掉elf头信息
                 std::memset(addr, 0, size);
                 LOGI("clean elf header success ! %s ", maps_tmp->pathname)
+                //权限复原
+                success = mProtectUserDefined((size_t) addr, size,
+                                              (maps_tmp->is_r ? PROT_READ : 0) |
+                                              (maps_tmp->is_w ? PROT_WRITE : 0) |
+                                              (maps_tmp->is_x ? PROT_EXEC : 0));
             }
-            //权限复原
-            success = mProtectUserDefined((size_t) addr, size,
-                                          (maps_tmp->is_r ? PROT_READ : 0) |
-                                          (maps_tmp->is_w ? PROT_WRITE : 0) |
-                                          (maps_tmp->is_x ? PROT_EXEC : 0));
         }
         pmparser_free(maps);
         return success;
