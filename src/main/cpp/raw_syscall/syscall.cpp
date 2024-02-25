@@ -35,7 +35,7 @@
             //"MOV X4, X5\n\t"
             //"MOV X5, X6\n\t"
             //"SVC 0\n\t"
-const unsigned char syscall_code[] = {
+ const unsigned char syscall_code[] = {
         0xE8, 0x03, 0x00, 0xAA,//MOV X8, X0
          0xE0,0x03, 0x01, 0xAA,//MOV X0, X1
          0xE1, 0x03,0x02, 0xAA,//MOV X1, X2
@@ -89,44 +89,44 @@ void print_hex(void* ptr, size_t length) {
     free(output);
 }
 
-//INLINE long raw_syscall2(long __number, ...) {
-//    long result ;
-//#if defined(__aarch64__)
-//    __asm__ (
-//            "MOV X8, X0\n\t"
-//            "MOV X0, X1\n\t"
-//            "MOV X1, X2\n\t"
-//            "MOV X2, X3\n\t"
-//            "MOV X3, X4\n\t"
-//            "MOV X4, X5\n\t"
-//            "MOV X5, X6\n\t"
-//            "SVC 0\n\t"
-//            "MOV %0, X0\n\t"
-//            : "=r" (result)
-//            :
-//            : "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x8" // 破坏列表
-//            );
-//#else
-//    __asm__ (
-//        "MOV R12, SP\n\t"
-//        "STMFD SP!, {R4-R7}\n\t"
-//        "MOV R7, R0\n\t"
-//        "MOV R0, R1\n\t"
-//        "MOV R1, R2\n\t"
-//        "MOV R2, R3\n\t"
-//        "LDMIA R12, {R3-R6}\n\t"
-//        "SVC 0\n\t"
-//        "LDMFD SP!, {R4-R7}\n\t"
-//        "MOV %0, R0\n\t"
-//        : "=r" (result)
-//        :
-//        : "r0", "r1", "r2", "r3", "r4", "r7", "r12"
-//    );
-//#endif
-//    return result;
-//}
+INLINE long raw_syscall_inline(long __number, ...) {
+    long result ;
+#if defined(__aarch64__)
+    __asm__ (
+            "MOV X8, X0\n\t"
+            "MOV X0, X1\n\t"
+            "MOV X1, X2\n\t"
+            "MOV X2, X3\n\t"
+            "MOV X3, X4\n\t"
+            "MOV X4, X5\n\t"
+            "MOV X5, X6\n\t"
+            "SVC 0\n\t"
+            "MOV %0, X0\n\t"
+            : "=r" (result)
+            :
+            : "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x8" // 破坏列表
+            );
+#else
+    __asm__ (
+        "MOV R12, SP\n\t"
+        "STMFD SP!, {R4-R7}\n\t"
+        "MOV R7, R0\n\t"
+        "MOV R0, R1\n\t"
+        "MOV R1, R2\n\t"
+        "MOV R2, R3\n\t"
+        "LDMIA R12, {R3-R6}\n\t"
+        "SVC 0\n\t"
+        "LDMFD SP!, {R4-R7}\n\t"
+        "MOV %0, R0\n\t"
+        : "=r" (result)
+        :
+        : "r0", "r1", "r2", "r3", "r4", "r7", "r12"
+    );
+#endif
+    return result;
+}
 
-char* syscall_mem = nullptr;
+static char* syscall_mem = nullptr;
 void* getSyscallMemPtr(){
     if(syscall_mem!= nullptr){
         return (void*)syscall_mem;
@@ -134,23 +134,68 @@ void* getSyscallMemPtr(){
     return nullptr;
 }
 
+static inline unsigned long checksum(void *buffer, size_t len) {
+    if (buffer == nullptr ) {
+        return 0;
+    }
+    unsigned long seed = 0;
+    auto *buf = (uint8_t *) buffer;
+    for (size_t i = 0; i < len; ++i) {
+        seed += (unsigned long) (buf[i]);
+    }
+    return seed;
+}
 
+#define syscall_mod_mem 1
+#define syscall_mod_inline 2
+
+typedef long (*syscall_func)(long number, ...);
+static unsigned long gMemcrc = 0;
 INLINE long raw_syscall(long __number, ...) {
+    syscall_func func = nullptr;
+    unsigned short syscall_mod = 0;
     if(syscall_mem == nullptr){
-        syscall_mem = (char*)mmap(nullptr, sizeof(syscall_code),PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, -1, 0);
-        if (syscall_mem == MAP_FAILED) {
-            return -1;
+#ifndef MAP_ANONYMOUS
+    #define MAP_ANONYMOUS MAP_ANON
+#endif
+//        syscall_mem = (char*)mmap(nullptr, sizeof(syscall_code),
+//                                  PROT_READ | PROT_WRITE | PROT_EXEC,
+//                                  MAP_ANONYMOUS | MAP_PRIVATE,
+//                                  -1, 0);
+#if defined(__aarch64__)
+        syscall_mem = (char*)syscall(__NR_mmap,nullptr, sizeof(syscall_code),
+                                  PROT_READ | PROT_WRITE | PROT_EXEC,
+                                  MAP_ANONYMOUS | MAP_PRIVATE,
+                                  -1, 0);
+#else
+        //arm 32 only mmap
+        syscall_mem = (char*)syscall(__NR_mmap2,nullptr, sizeof(syscall_code),
+                                     PROT_READ | PROT_WRITE | PROT_EXEC,
+                                     MAP_ANONYMOUS | MAP_PRIVATE,
+                                     -1, 0);
+#endif
+
+        if (LIKELY(syscall_mem != MAP_FAILED)) {
+            std::memset(syscall_mem, 0, sizeof(syscall_code));
+            std::memcpy(syscall_mem, syscall_code, sizeof(syscall_code));
+            //get syscall_code crc
+            gMemcrc = checksum((void*)syscall_mem,sizeof(syscall_code));
+            //not write
+            mprotect(syscall_mem, sizeof(syscall_code), PROT_READ | PROT_EXEC);
+            func = (syscall_func)syscall_mem;
+            syscall_mod = syscall_mod_mem;
         }
     }
-
-    std::memset(syscall_mem, 0, sizeof(syscall_code));
-    std::memcpy(syscall_mem, syscall_code, sizeof(syscall_code));
-    __builtin___clear_cache(
-            (char *) syscall_mem,
-            (char *) (syscall_mem + sizeof(syscall_code))
-    );
-    //print_hex(syscall_mem,sizeof(syscall_code));
-
+    if(func == nullptr){
+        func = (syscall_func)raw_syscall_inline;
+        syscall_mod = syscall_mod_inline;
+    }
+    if(syscall_mod == syscall_mod_mem){
+        if(UNLIKELY(gMemcrc != checksum((void*)func, sizeof(syscall_code)))){
+            //mem mod crc error
+            exit(11);
+        }
+    }
     //syscall args max 7
     void *arg[7];
     va_list list;
@@ -159,9 +204,7 @@ INLINE long raw_syscall(long __number, ...) {
         i = va_arg(list, void *);
     }
     va_end(list);
-    typedef long (*syscall_func)(long number, ...);
-    syscall_func func = (syscall_func)syscall_mem;
-    long result = func(__number, arg[0], arg[1], arg[2], arg[3], arg[4], arg[5], arg[6]);
     //munmap(syscall_mem, sizeof(syscall_code));
-    return result;
+    //syscall_mem = nullptr;
+    return func(__number, arg[0], arg[1], arg[2], arg[3], arg[4], arg[5], arg[6]);
 }
