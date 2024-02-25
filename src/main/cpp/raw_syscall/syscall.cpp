@@ -19,15 +19,35 @@
 #include "logging.h"
 #include "xdl.h"
 
-// 定义一个函数指针类型，以便于执行动态生成的代码
-typedef long (*syscall_func)(long number, ...);
+//    void* handle = xdl_open("libc.so", XDL_ALWAYS_FORCE_LOAD);
+//    size_t size =-1;
+//    void* syscall_addr = xdl_sym(handle,"syscall",&size);
+//    print_hex(syscall_addr,size);
+//    exit(0);
+
 
 #if defined(__aarch64__)
+            //"MOV X8, X0\n\t"
+            //"MOV X0, X1\n\t"
+            //"MOV X1, X2\n\t"
+            //"MOV X2, X3\n\t"
+            //"MOV X3, X4\n\t"
+            //"MOV X4, X5\n\t"
+            //"MOV X5, X6\n\t"
+            //"SVC 0\n\t"
 const unsigned char syscall_code[] = {
-        0xe8, 0x03, 0x00, 0xaa, 0xe0, 0x03, 0x01, 0xaa, 0xe1, 0x03, 0x02, 0xaa,
-        0xe2, 0x03, 0x03, 0xaa, 0xe3, 0x03, 0x04, 0xaa, 0xe4, 0x03, 0x05, 0xaa,
-        0xe5, 0x03, 0x06, 0xaa, 0x01, 0x00, 0x00, 0xd4, 0x1f, 0x04, 0x40, 0xb1,
-        0x00, 0x94, 0x80, 0xda, 0x48, 0xbb, 0x29, 0x54, 0xc0, 0x03, 0x5f, 0xd6
+        0xE8, 0x03, 0x00, 0xAA,//MOV X8, X0
+         0xE0,0x03, 0x01, 0xAA,//MOV X0, X1
+         0xE1, 0x03,0x02, 0xAA,//MOV X1, X2
+        0xE2, 0x03, 0x03, 0xAA, //MOV X2, X3
+        0xE3, 0x03, 0x04, 0xAA,//MOV X3, X4
+        0xE4, 0x03, 0x05, 0xAA,//MOV X4, X5
+        0xE5, 0x03, 0x06, 0xAA, //MOV X5, X6
+        0x01, 0x00, 0x00, 0xD4, //SVC 0
+//        0x1F, 0x04, 0x40, 0xB1,//CMN  X0, #1,LSL#12
+//        0x00, 0x90, 0x80, 0xD4,//CINV X0, X0, HI
+//        0xA8, 0xAE, 0x28, 0x54, //B.HI __set_errno_internal
+        0xC0,0x03,0x5F,0xD6//RET
 };
 
 #else
@@ -53,24 +73,16 @@ void print_hex(void* ptr, size_t length) {
     }
     char* current = output;
     for (size_t i = 0; i < length; ++i) {
-        current += sprintf(current, "%02x ", bytes[i]);
+        current += sprintf(current, "%02X ", bytes[i]);
     }
     LOG(ERROR)<<length<<" code -> " << output;
     free(output);
 }
 
 
-void* syscall_mem = nullptr;
+
 
 INLINE long raw_syscall(long __number, ...) {
-
-//    void* handle = xdl_open("libc.so", XDL_ALWAYS_FORCE_LOAD);
-//    size_t size =-1;
-//    void* syscall_addr = xdl_sym(handle,"syscall",&size);
-//    print_hex(syscall_addr,size);
-//    exit(0);
-
-
     long result ;
 #if defined(__aarch64__)
     __asm__ (
@@ -104,21 +116,34 @@ INLINE long raw_syscall(long __number, ...) {
         : "r0", "r1", "r2", "r3", "r4", "r7", "r12"
     );
 #endif
-
+    return result;
+//-----------------------------------------------------------------------------------------------------------
+//    char* syscall_mem = nullptr;
 //    if(syscall_mem == nullptr){
-//        syscall_mem = mmap(nullptr, sizeof(syscall_code),
+//        syscall_mem = (char*)mmap(nullptr, sizeof(syscall_code),
 //                        PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, -1, 0);
+//        if (syscall_mem == MAP_FAILED) {
+//            LOG(ERROR)<<"raw_syscall mmap error "<< strerror(errno);
+//            return -1;
+//        }
 //    }
-//    if (syscall_mem == MAP_FAILED) {
-//        LOG(ERROR)<<"raw_syscall mmap error "<< strerror(errno);
-//        return -1;
-//    }
+//
 //    std::memset(syscall_mem, 0, sizeof(syscall_code));
 //    std::memcpy(syscall_mem, syscall_code, sizeof(syscall_code));
-//    syscall_func func = (syscall_func)syscall_mem;
+//    __builtin___clear_cache(
+//            (char *) syscall_mem,
+//            (char *) (syscall_mem + sizeof(syscall_code))
+//    );
+//    //print_hex(syscall_mem,sizeof(syscall_code));
+//
 //    va_list args;
 //    va_start(args, __number);
+//    typedef long (*syscall_func)(long number, ...);
+//    //typedef long (*syscall_func)();
+//    syscall_func func = (syscall_func)syscall_mem;
+//    //LOG(ERROR)<<">>>>>>>>>>>>>>111111111111111111111111111 ";
 //    long result = func(__number,args);
-//    munmap(syscall_mem, sizeof(syscall_code));
-    return result;
+//    LOG(ERROR)<<">>>>>>>>>>>>>>222222222222222222222222222 "<<result;
+//    //munmap(syscall_mem, sizeof(syscall_code));
+//    return result;
 }
