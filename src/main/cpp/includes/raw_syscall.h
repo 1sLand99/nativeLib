@@ -13,5 +13,6 @@
 #include <sys/syscall.h>
 
 INLINE long raw_syscall(long __number, ...);
+INLINE void* getSyscallMemPtr();
 
 #endif //HUNTER_RAW_SYSCALL_H
