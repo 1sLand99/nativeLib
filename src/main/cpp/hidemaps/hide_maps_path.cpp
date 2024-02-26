@@ -121,6 +121,15 @@ namespace ZhenxiRuntime::MapsItemHide {
         auto end = (uintptr_t) procstruct->addr_end;
         auto length = end - start;
         int prot = get_prot(procstruct);
+        //map一片新的,把原来的复制进去,remap到原来位置
+//        void* m = (void*)raw_syscall(MMAP_NR, nullptr,
+//                                     length, prot | PROT_WRITE,MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+//        if(m != MAP_FAILED){
+//            my_memcpy(m, (void *) start, length);
+//            errno = 0;
+//            raw_syscall(SYS_mprotect,m,length,prot);
+//            mremap(m,length,length,MREMAP_FIXED|MREMAP_MAYMOVE,(void*)start);
+//        }
 
         // backup
         data->backup_address = reinterpret_cast<uintptr_t>(FAILURE_RETURN(
@@ -206,8 +215,41 @@ namespace ZhenxiRuntime::MapsItemHide {
     void hide_elf_header(const std::set<std::string_view> &names, CLEAN_ELF_HEADER_TYPE type) {
         clear_elf_header(names, type);
     }
-
     bool riru_hide(const std::set<std::string_view> &names) {
+        procmaps_iterator *maps = pmparser_parse(-1);
+        if (maps == nullptr) {
+            LOGE("cannot parse the memory map");
+            return false;
+        }
+        void *libc = dlopen("libc.so", RTLD_NOW);
+        if (libc == nullptr) {
+            LOGE("cannot get dlopen libc.so ");
+            return false;
+        }
+        list<hide_struct> map_item_list ;
+        procmaps_struct *maps_tmp;
+        while ((maps_tmp = pmparser_next(maps)) != nullptr) {
+            bool matched = names.count(maps_tmp->pathname);
+            if (!matched) continue;
+            if (maps_tmp->is_r) {
+                hide_struct hide_item ;
+                hide_item.original = maps_tmp;
+                map_item_list.push_back(hide_item);
+            }else{
+                LOGI("maps do_hide item not read !   [%s] ",maps_tmp->pathname)
+            }
+        }
+        for (auto hide_struct: map_item_list) {
+            do_hide(&hide_struct);
+            LOGI("maps do_hide success !  %s  [%s] ", hide_struct.original->pathname, getprogname())
+        }
+        dlclose(libc);
+        pmparser_free(maps);
+        return true;
+    }
+
+
+    bool riru_hide_orig(const std::set<std::string_view> &names) {
         procmaps_iterator *maps = pmparser_parse(-1);
         if (maps == nullptr) {
             LOGE("cannot parse the memory map");
