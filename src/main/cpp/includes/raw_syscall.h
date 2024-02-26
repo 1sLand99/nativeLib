@@ -12,7 +12,12 @@
 #include <asm/unistd.h>
 #include <sys/syscall.h>
 
-INLINE long raw_syscall(long __number, ...);
-INLINE void* getSyscallMemPtr();
+struct syscall_mem_ptr_info{
+    unsigned int size ;
+    void* mem_ptr;
+};
+long raw_syscall(long __number, ...);
+syscall_mem_ptr_info getSyscallMemPtr();
+void init_mem_raw_syscall();
 
 #endif //HUNTER_RAW_SYSCALL_H
