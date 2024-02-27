@@ -40,6 +40,9 @@ public:
     static string jstring2str(JNIEnv *env, jstring jstr);
 
     static std::map<std::string, std::string> jmap2cmap(JNIEnv *env,jobject jmap);
+
+    static jobject cmap2jmap(JNIEnv *env,std::map<std::string, std::string> map);
+
     /**
      * Java list转换成C list
      */

@@ -78,6 +78,28 @@ map<string, string> parse::jmap2cmap(JNIEnv *env, jobject jmap) {
     return cmap;
 }
 
+jobject parse::cmap2jmap(JNIEnv *env,std::map<std::string, std::string> map){
+    jclass hashMapClass = env->FindClass("java/util/HashMap");
+    if (hashMapClass == nullptr) return nullptr;
+    jmethodID hashMapInit = env->GetMethodID(hashMapClass, "<init>", "()V");
+    if (hashMapInit == nullptr) return nullptr;
+    jobject hashMap = env->NewObject(hashMapClass, hashMapInit);
+    if (hashMap == nullptr) return nullptr;
+    jmethodID hashMapPut = env->GetMethodID(hashMapClass, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+    if (hashMapPut == nullptr) return nullptr;
+    for (const auto& entry : map) {
+        jstring key = env->NewStringUTF(entry.first.c_str());
+        jstring value = env->NewStringUTF(entry.second.c_str());
+
+        // 调用put方法，添加键值对到HashMap
+        env->CallObjectMethod(hashMap, hashMapPut, key, value);
+
+        // 释放局部引用，避免引用表溢出
+        env->DeleteLocalRef(key);
+        env->DeleteLocalRef(value);
+    }
+    return hashMap;
+}
 
 std::list<string> parse::jlist2clist(JNIEnv *env, jobject jlist) {
     std::list<std::string> clist;
