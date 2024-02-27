@@ -22,11 +22,12 @@
 
 typedef long (*syscall_func)(long number, ...);
 void* syscall_mem ;
+int syscallMod = -1;
+
 static unsigned long gMemcrc = 0;
 syscall_mem_ptr_info ptr_info = {0};
 
-#define syscall_mod_mem 1
-#define syscall_mod_inline 2
+
 
 
 #if defined(__aarch64__)
@@ -92,6 +93,9 @@ void print_hex(void *ptr, size_t length) {
     free(output);
 }
 
+void setRawSyscallMod(int mod){
+    syscallMod = mod;
+}
 INLINE long raw_syscall_inline(long __number, ...) {
     long result;
 #if defined(__aarch64__)
@@ -147,7 +151,7 @@ static inline unsigned long checksum(void *buffer, size_t len) {
 }
 
 
-inline void init_mem_raw_syscall() {
+inline void initMemMmapRawSyscall() {
 
     if (syscall_mem == nullptr) {
 #if defined(__aarch64__)
@@ -178,22 +182,35 @@ inline void init_mem_raw_syscall() {
     return ;
 }
 
+inline void initMemMallocRawSyscall() {
+    if (syscall_mem == nullptr) {
+        syscall_mem = malloc(sizeof(syscall_code));
+        std::memset((void*)syscall_mem, 0, sizeof(syscall_code));
+        std::memcpy((void*)syscall_mem, syscall_code, sizeof(syscall_code));
+        //get syscall_code crc
+        gMemcrc = checksum((void *) syscall_mem, sizeof(syscall_code));
+        //not write
+        mprotect((void*)syscall_mem, sizeof(syscall_code), PROT_READ | PROT_EXEC);
+        ptr_info.mem_ptr = syscall_mem;
+        ptr_info.size = sizeof(syscall_code);
+    }
+    return ;
+}
+
 std::once_flag flag;
 
 long raw_syscall(long __number, ...) {
     syscall_func func;
-    unsigned short syscall_mod;
-    //call once
-    //std::call_once(flag,init_mem_raw_syscall);
-    init_mem_raw_syscall();
-    if (syscall_mem) {
+    if (syscallMod == syscall_mod_mem) {
+        //mmap
+        //initMemMmapRawSyscall();
+        //malloc
+        initMemMallocRawSyscall();
         func = (syscall_func) syscall_mem;
-        syscall_mod = syscall_mod_mem;
     } else{
         func = (syscall_func) raw_syscall_inline;
-        syscall_mod = syscall_mod_inline;
     }
-    if (syscall_mod == syscall_mod_mem) {
+    if (syscallMod == syscall_mod_mem) {
         if (UNLIKELY(gMemcrc != checksum((void *) func, sizeof(syscall_code)))) {
             //mem mod crc error
             exit(11);
@@ -208,9 +225,5 @@ long raw_syscall(long __number, ...) {
         i = va_arg(list, void *);
     }
     va_end(list);
-//    if (syscall_mod == syscall_mod_mem) {
-//        munmap(syscall_mem, sizeof(syscall_code));
-//        syscall_mem = nullptr;
-//    }
     return func(__number, arg[0], arg[1], arg[2], arg[3], arg[4], arg[5], arg[6]);
 }
