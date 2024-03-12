@@ -23,7 +23,7 @@ struct syscall_mem_ptr_info{
 
 long raw_syscall(long __number, ...);
 syscall_mem_ptr_info getSyscallMemPtr();
-void setRawSyscallMod(int mod);
+inline void setRawSyscallMod(int mod);
 
 //void init_mem_raw_syscall();
 

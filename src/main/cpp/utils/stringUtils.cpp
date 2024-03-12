@@ -150,3 +150,14 @@ int StringUtils::replace(std::string &str, const std::string &pattern, const std
     return count;
 }
 
+std::vector<std::string> StringUtils::SplitString(const std::string& str, char delimiter ) {
+    std::vector<std::string> tokens;
+    std::istringstream stream(str);
+    std::string token;
+
+    while (std::getline(stream, token, delimiter)) {
+        tokens.push_back(token);
+    }
+
+    return tokens;
+}

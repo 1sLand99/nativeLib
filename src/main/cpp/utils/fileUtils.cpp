@@ -9,7 +9,18 @@
 #include <libgen.h>
 
 using namespace std;
-
+/**
+ * 一行一行读取一个文件
+ */
+std::vector<std::string> fileUtils::ReadFileLines(const std::string& filePath) {
+    std::vector<std::string> lines;
+    std::ifstream file(filePath);
+    std::string line;
+    while (std::getline(file, line)) {
+        lines.push_back(line);
+    }
+    return lines;
+}
 /**
  * 获取文件夹下全部的文件
  */

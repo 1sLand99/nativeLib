@@ -38,7 +38,7 @@
 namespace StringUtils {
 
     bool compare_pred(unsigned char a, unsigned char b);
-
+    std::vector<std::string> SplitString(const std::string& str, char delimiter );
 //    std::string vector2str(vector<std::string> &&arr, const char* sp = ", ");
 
     bool equals(const std::string &str1, const std::string &str2);

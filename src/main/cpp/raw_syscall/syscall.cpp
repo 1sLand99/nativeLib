@@ -39,7 +39,7 @@ syscall_mem_ptr_info ptr_info = {0};
 //"MOV X4, X5\n\t"
 //"MOV X5, X6\n\t"
 //"SVC 0\n\t"
-const unsigned char syscall_code[] = {
+inline const unsigned char syscall_code[] = {
         0xE8, 0x03, 0x00, 0xAA,//MOV X8, X0
         0xE0, 0x03, 0x01, 0xAA,//MOV X0, X1
         0xE1, 0x03, 0x02, 0xAA,//MOV X1, X2
@@ -62,7 +62,7 @@ const unsigned char syscall_code[] = {
 //        SVC             0
 //        LDMFD           SP!, {R4-R7}
 //        mov             pc, lr
-const unsigned char syscall_code[] = {
+inline const unsigned char syscall_code[] = {
     0x0D,0xC0,0xA0,0xE1,//MOV             R12, SP
     0xF0,0x00,0x2D,0xE9,//STMFD           SP!, {R4-R7}
     0x00,0x70,0xA0,0xE1,//MOV             R7, R0
@@ -77,7 +77,7 @@ const unsigned char syscall_code[] = {
 
 #endif
 
-void print_hex(void *ptr, size_t length) {
+inline void print_hex(void *ptr, size_t length) {
     unsigned char *bytes = (unsigned char *) ptr;
     char *output = (char *) malloc(length * 3 + 1);
     if (!output) {
@@ -93,7 +93,7 @@ void print_hex(void *ptr, size_t length) {
     free(output);
 }
 
-void setRawSyscallMod(int mod){
+inline void setRawSyscallMod(int mod){
     syscallMod = mod;
 }
 INLINE long raw_syscall_inline(long __number, ...) {
