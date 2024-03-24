@@ -209,6 +209,19 @@ bool fileUtils::file_include(const char* filePath, const std::vector<std::string
     //std::cerr << "file_include not find " << filePath << std::endl;
     return false;
 }
+
+std::string fileUtils::readPopenFile(FILE* pipe) {
+    if (!pipe) return "Error: pipe is null";
+    std::string result;
+    char buffer[128];
+    while (!feof(pipe)) {
+        if (fgets(buffer, 128, pipe) != nullptr) {
+            result += buffer;
+        }
+    }
+    return result;
+}
+
 /**
  * 根据fd获取path路径
  */
@@ -283,7 +296,7 @@ string fileUtils::readText(string file) {
     infile.open(file.data());   //将文件流对象与文件连接起来
     if (!infile.is_open()) {
         //若失败,则输出错误消息,并终止程序运行
-        //LOGE("fileUtils read text open file error %s ", file.c_str());
+        LOGE("fileUtils read text open file error %s ", file.c_str());
         return {};
     }
 

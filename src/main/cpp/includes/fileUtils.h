@@ -22,6 +22,7 @@ public:
     static string readText(string file);
     static string readText(FILE *file);
     static string readText(int fd);
+    static std::string readPopenFile(FILE* pipe);
     static void writeText(string file,const string& str,bool isAppend);
     static bool savefile(const char* filePath,size_t size,size_t start,bool isDele);
     static string get_file_name(int fd,pid_t pid);
