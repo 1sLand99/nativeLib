@@ -2,6 +2,7 @@
 #define HIDE_MAPS_PATH_H
 
 #include <string>
+#include <set>
 
 namespace ZhenxiRuntime {
 

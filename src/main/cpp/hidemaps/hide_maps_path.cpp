@@ -35,6 +35,7 @@ namespace ZhenxiRuntime::MapsItemHide {
 #endif
 
     struct hide_struct {
+        string item_path = {};
         procmaps_struct *original;
         uintptr_t backup_address;
     };
@@ -233,15 +234,16 @@ namespace ZhenxiRuntime::MapsItemHide {
             if (!matched) continue;
             if (maps_tmp->is_r) {
                 hide_struct hide_item ;
+                hide_item.item_path = maps_tmp->orig_path;
                 hide_item.original = maps_tmp;
                 map_item_list.push_back(hide_item);
             }else{
-                LOGI("maps do_hide item not read !   [%s] ",maps_tmp->pathname)
+                LOGI("maps do_hide item not read !   [%s] ",maps_tmp->orig_path)
             }
         }
         for (auto hide_struct: map_item_list) {
             do_hide(&hide_struct);
-            LOGI("maps do_hide success !  %s  [%s] ", hide_struct.original->pathname, getprogname())
+            LOGI("maps do_hide success !  %s  [%s] ", hide_struct.item_path.c_str(), getprogname())
         }
         dlclose(libc);
         pmparser_free(maps);
