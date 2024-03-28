@@ -10,7 +10,22 @@
 #define BUF_SIZE 1024
 
 using namespace std;
-
+std::string parse::jbyteArrayToStdString(JNIEnv* env, jbyteArray byteArray) {
+    jsize len = env->GetArrayLength(byteArray);
+    jbyte* bytes = env->GetByteArrayElements(byteArray, nullptr);
+    std::string str(reinterpret_cast<char*>(bytes), len);
+    env->ReleaseByteArrayElements(byteArray, bytes, JNI_ABORT);
+    return str;
+}
+jbyteArray parse::stringToJByteArray(JNIEnv *env, const std::string &str) {
+    jbyteArray byteArray = env->NewByteArray(static_cast<jsize>(str.size()));
+    if (byteArray != nullptr) {
+        env->SetByteArrayRegion(byteArray, 0,
+                                static_cast<jsize>(str.size()),
+                                reinterpret_cast<const jbyte *>(str.data()));
+    }
+    return byteArray;
+}
 [[maybe_unused]] jstring parse::char2jstring(JNIEnv *env, const char *pat) {
 
     //定义java String类 strClass

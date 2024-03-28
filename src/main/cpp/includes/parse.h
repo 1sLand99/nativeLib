@@ -43,6 +43,12 @@ public:
 
     static jobject cmap2jmap(JNIEnv *env,std::map<std::string, std::string> map);
 
+    static jbyteArray stringToJByteArray(JNIEnv *env, const std::string &str);
+
+
+    static string jbyteArrayToStdString(JNIEnv* env, jbyteArray byteArray);
+
+
     /**
      * Java list转换成C list
      */
