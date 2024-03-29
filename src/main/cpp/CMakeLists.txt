@@ -32,6 +32,7 @@ add_subdirectory(proc_maps_parser)
 add_subdirectory(antiJit)
 add_subdirectory(tracer)
 add_subdirectory(raw_syscall)
+add_subdirectory(javahook)
 
 target_link_libraries(
         nativeLib
@@ -39,5 +40,5 @@ target_link_libraries(
 
         dlfc libpath adapter utils runtimehook raw_syscall xunwind
         linkerHandler findsyscall mapshidepath proc_maps_parser antijit
-        tracer
+        tracer hookjava
 )
