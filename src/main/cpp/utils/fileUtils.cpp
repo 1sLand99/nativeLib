@@ -354,7 +354,7 @@ bool fileUtils::savefile(const char *savePath, size_t size, size_t start, bool i
     }
     char *path = strdup(savePath);
     char *filepath = dirname(path);
-    LOGI("fileUtils::savefile upper path -> %s ", filepath)
+    LOGI("fileUtils::savefile upper path -> %s %s ",savePath, filepath)
     if (access(filepath, 0) == -1) {
         LOGI("fileUtils::savefile not found upper path ,start create  %s", filepath)
         //如果父文件夹不存在递归创建多级
