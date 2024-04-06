@@ -136,8 +136,7 @@ namespace ZhenxiRunTime::JniTrace {
         if (isHookAll) {
             match_so_name = getFileNameForPath(name);
             return true;
-        }
-        else {
+        } else {
             for (const string &filter: filterSoList) {
                 //默认监听一级
                 if (my_strstr(name, filter.c_str()) != nullptr) {
@@ -481,6 +480,10 @@ namespace ZhenxiRunTime::JniTrace {
         if (obj == nullptr) {
             return;
         }
+        if(env->ExceptionCheck()) {
+            //exception return
+            return;
+        }
         const string temptag =
                 "<<<<<------------------" + methodname + " --------------------->>>>>";
         write(temptag, true);
@@ -584,14 +587,40 @@ namespace ZhenxiRunTime::JniTrace {
                 argJstr = (jstring) (env->NewObject(strclazz, strInit, arg, utf));
                 env->DeleteLocalRef(utf);
                 env->DeleteLocalRef(strclazz);
-            } else {
+            }
+            else {
                 //其他的则调用Arrays.toString 处理
                 jclass ArrayClazz = env->FindClass("java/util/Arrays");
-                //这个需要用object类型
-                jmethodID methodid =
-                        env->GetStaticMethodID(ArrayClazz,
-                                               "toString",
-                                               "([Ljava/lang/Object;)Ljava/lang/String;");
+                jmethodID methodid = nullptr;
+                if (my_strcmp(classInfo, "[F") == 0) {
+                    methodid = env->GetStaticMethodID(ArrayClazz, "toString",
+                                                      "([F)Ljava/lang/String;");
+                } else if (my_strcmp(classInfo, "[I") == 0) {
+                    methodid = env->GetStaticMethodID(ArrayClazz, "toString",
+                                                      "([I)Ljava/lang/String;");
+                } else if (my_strcmp(classInfo, "[S") == 0) {
+                    methodid = env->GetStaticMethodID(ArrayClazz, "toString",
+                                                      "([S)Ljava/lang/String;");
+                } else if (my_strcmp(classInfo, "[J") == 0) {
+                    methodid = env->GetStaticMethodID(ArrayClazz, "toString",
+                                                      "([J)Ljava/lang/String;");
+                } else if (my_strcmp(classInfo, "[D") == 0) {
+                    methodid = env->GetStaticMethodID(ArrayClazz, "toString",
+                                                      "([D)Ljava/lang/String;");
+                } else if (my_strcmp(classInfo, "[C") == 0) {
+                    methodid = env->GetStaticMethodID(ArrayClazz, "toString",
+                                                      "([C)Ljava/lang/String;");
+                } else if (my_strcmp(classInfo, "[Z") == 0) {
+                    methodid = env->GetStaticMethodID(ArrayClazz, "toString",
+                                                      "([Z)Ljava/lang/String;");
+                } else {
+                    //这个需要用object类型
+                    methodid =
+                            env->GetStaticMethodID(ArrayClazz,
+                                                   "toString",
+                                                   "([Ljava/lang/Object;)Ljava/lang/String;");
+                }
+
                 argJstr = (jstring) (env->CallStaticObjectMethod(ArrayClazz, methodid, arg));
             }
             if (argJstr != nullptr) {
@@ -627,6 +656,10 @@ namespace ZhenxiRunTime::JniTrace {
     ) {
 
         if (obj == nullptr) {
+            return;
+        }
+        if(env->ExceptionCheck()) {
+            //exception return
             return;
         }
         if (jmethodId == nullptr) {
