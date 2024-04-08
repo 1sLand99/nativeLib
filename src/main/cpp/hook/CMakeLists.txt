@@ -2,9 +2,12 @@ cmake_minimum_required(VERSION 3.4.1)
 #添加内联支持
 enable_language(C ASM)
 
-
-
-
+#------------------shadowhook--------------------------
+include_directories(
+        ${CMAKE_CURRENT_SOURCE_DIR}/Shadowhook/shadowhook/src/main/cpp/include
+)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/Shadowhook/shadowhook/src/main/cpp)
+#------------------dobby--------------------------
 #设置路径,引入Dobby
 include_directories(
         Dobby/include
@@ -24,6 +27,7 @@ SET_OPTION(DOBBY_GENERATE_SHARED OFF)
 #是否加载linker加载so的回调
 SET_OPTION(Plugin.LinkerLoadCallback OFF)
 add_subdirectory(Dobby dobby.build)
+#------------------dobby--------------------------
 
 
 
@@ -39,6 +43,7 @@ add_library(
 target_link_libraries(
         runtimehook
         dobby
+        shadowhook
 
         dlfc
         ${log-lib}

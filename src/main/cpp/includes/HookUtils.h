@@ -6,9 +6,26 @@
 #include "logging.h"
 
 #include "dobby.h"
+#include "shadowhook.h"
 
 #ifndef VMP_HOOKUTILS_H
 #define VMP_HOOKUTILS_H
+
+enum Hook_MODEL {
+    /**
+      * 采用dobby进行hook
+      * https://github.com/jmpews/Dobby
+    */
+    HOOK_MODEL_DOBBY = 1,
+    /**
+       * 采用shadowhook进行hook
+       * https://github.com/bytedance/android-inline-hook
+    */
+    HOOK_MODEL_SHADOWHOOK = 2
+};
+
+
+
 
 #define HOOK_DEF(ret, func, ...) \
   ret (*orig_##func)(__VA_ARGS__)=nullptr; \
@@ -44,6 +61,7 @@ HOOK_SYM(sym##name,name)
 
 class HookUtils {
 public:
+    static void setHookerModle(Hook_MODEL modle);
 
     static bool Hooker(void *dysym, void *repl, void **org);
 

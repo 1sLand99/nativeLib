@@ -13,34 +13,76 @@
 #include "ZhenxiLog.h"
 
 using namespace std;
+/**
+ * 当前hook utils的hook模式
+ */
+static Hook_MODEL HOOKUTILS_MODEL = Hook_MODEL::HOOK_MODEL_SHADOWHOOK;
 
+/**
+ * shadowhook
+ * 在做unhook的时候需要使用返回值进行unhook
+ */
+struct hook_addr_info{
+    void* hook_orig;
+    void* hook_ret;
+};
 /**
  * 保存全部hook的地址,防止某一个方法被多次Hook
  */
-static list<void *> *hookedList = nullptr;
+static list<hook_addr_info*> *hookedList = nullptr;
+
+static bool isInted = false;
 
 /**
  * 取消函数Hook
  * @param sym  被Hook函数地址
  */
 bool HookUtils::unHook(void *sym) {
-    bool ret = DobbyDestroy(sym) == RT_SUCCESS;
+    if(hookedList == nullptr || hookedList->empty()){
+        LOG(ERROR) << "HookUtils unHook hookedList == nullptr  !!!" ;
+        return false;
+    }
+    hook_addr_info* info = nullptr;
+    for (hook_addr_info* ptr : *hookedList) {
+        if(ptr != nullptr&&ptr->hook_orig == sym){
+            info = ptr;
+            break;
+        }
+    }
+    if(info == nullptr){
+        LOG(ERROR) << "HookUtils unHook info == nullptr  !!!" ;
+        LOG(ERROR) << "HookUtils unHook info == nullptr  @@@" ;
+        LOG(ERROR) << "HookUtils unHook info == nullptr  ###" ;
+        return false;
+    }
+    bool ret = false;
+    if(HOOKUTILS_MODEL == HOOK_MODEL_DOBBY){
+        ret = DobbyDestroy(info->hook_orig) == RT_SUCCESS;
+    }else if(HOOKUTILS_MODEL == HOOK_MODEL_SHADOWHOOK){
+        ret = shadowhook_unhook(info->hook_ret) == SHADOWHOOK_ERRNO_OK;
+    }
     if(hookedList!= nullptr){
-        hookedList->remove(sym);
+        hookedList->remove(info);
     }
     return ret;
 }
 
-#define PUT_PTR(dys) \
+#define PUT_PTR(orig,ret) \
     if(hookedList!= nullptr){ \
-        hookedList->push_back(dys); \
+        hook_addr_info *info  = new hook_addr_info(); \
+        info->hook_orig = orig;\
+        info->hook_ret = ret;\
+        hookedList->push_back(info); \
     } \
 
-void HookUtils::startBranchTrampoline(){
+[[maybe_unused]]
+void  HookUtils::startBranchTrampoline(){
     dobby_enable_near_branch_trampoline();
 }
-
-
+[[maybe_unused]]
+void HookUtils::setHookerModle(Hook_MODEL modle){
+    HOOKUTILS_MODEL = modle;
+}
 /**
  * Hook的整体封装,这个方法可以切换别的Hook框架
  * 先尝试用DobbyHook 如果Hook失败的话用InlineHook二次尝试
@@ -52,31 +94,68 @@ void HookUtils::startBranchTrampoline(){
  */
 bool HookUtils::Hooker(void *dysym, void *newrep, void **org) {
     if (dysym == nullptr) {
-        LOG(ERROR) << "dobby hook org == null ";
+        //LOG(ERROR) << "dobby hook org == null ";
         return false;
     }
-    if (hookedList == nullptr) {
-        hookedList = new list<void *>();
-    }
-
-    //如果这个地址已经被Hook了 。也有可能返回失败 。dobby 会提示 already been hooked 。
-    for (void *ptr: *hookedList) {
-        if (ptr == dysym) {
-            //如果保存了这个地址,说明之前hook成功过,我们也认为hook成功
-            return true;
+    //init hook for shadowhook
+    if(!isInted){
+        if(HOOKUTILS_MODEL == Hook_MODEL::HOOK_MODEL_SHADOWHOOK){
+            //a function can be hooked multiple times
+            //SHADOWHOOK_MODE_SHARED = 0
+            //a function can only be hooked once, and hooking again will report an error
+            //SHADOWHOOK_MODE_UNIQUE = 1
+            auto ret =shadowhook_init(shadowhook_mode_t::SHADOWHOOK_MODE_UNIQUE,
+                            false);
+            if(ret == SHADOWHOOK_ERRNO_OK) {
+                isInted = true;
+            } else{
+                LOG(ERROR) << "shadowhook_init init error  "<<shadowhook_to_errmsg(ret);
+            }
         }
     }
-
-    bool ret = DobbyHook(dysym,
-                         reinterpret_cast<dobby_dummy_func_t>(newrep),
-                         reinterpret_cast<dobby_dummy_func_t *>(org)) == RT_SUCCESS;
-    if (ret) {
-        //LOG(ERROR) << "hook utils hook success !" ;
-        //将地址添加到已经hook的列表,防止这个地址被多次hook
-        PUT_PTR(dysym)
-        return true;
+    if (hookedList == nullptr) {
+        hookedList = new list<hook_addr_info*>();
     }
-    return ret;
+    if(hookedList!= nullptr){
+        //如果这个地址已经被Hook了 。也有可能返回失败 。dobby 会提示 already been hooked 。
+        for (hook_addr_info* ptr: *hookedList) {
+            if (ptr->hook_orig == dysym) {
+                //如果保存了这个地址,说明之前hook成功过,我们也认为hook成功
+                return true;
+            }
+        }
+    }
+    string errorMsg = {};
+    if(HOOKUTILS_MODEL == Hook_MODEL::HOOK_MODEL_DOBBY){
+        //hook used dobby
+        bool ret = DobbyHook(dysym,
+                        reinterpret_cast<dobby_dummy_func_t>(newrep),
+                        reinterpret_cast<dobby_dummy_func_t *>(org)
+                        )== RT_SUCCESS;
+        if(ret){
+            PUT_PTR(dysym, nullptr)
+            return true;
+        }
+    }else if(HOOKUTILS_MODEL == Hook_MODEL::HOOK_MODEL_SHADOWHOOK){
+        void* sub = shadowhook_hook_func_addr(dysym,
+                                        newrep,
+                                        org
+        );
+        if(sub!= nullptr){
+            PUT_PTR(dysym,sub)
+            return true;
+        }else{
+            int err_num = shadowhook_get_errno();
+            errorMsg = shadowhook_to_errmsg(err_num);
+        }
+    }
+    Dl_info info;
+    dladdr(dysym,&info);
+    LOG(ERROR) << "HookUtils::Hooker hook error"
+                  " "<<info.dli_fname<<" "<<info.dli_sname
+                  <<" error msg "<<errorMsg;
+
+    return false;
 
 }
 
@@ -101,7 +180,10 @@ bool HookUtils::Hooker(void *handler, const char *dysym, void *repl, void **org)
  * @param dynSymName  函数的符号,主要为了在失败时候方便打印那个函数失败了
  * @return 是否Hook成功
  */
-bool HookUtils::Hooker(void *dysym, void *repl, void **org, const char *dynSymName) {
+bool HookUtils::Hooker(void *dysym,
+                       void *repl,
+                       void **org,
+                       [[maybe_unused]] const char *dynSymName) {
     if (Hooker(dysym, repl, org)) {
         return true;
     }
@@ -111,6 +193,7 @@ bool HookUtils::Hooker(void *dysym, void *repl, void **org, const char *dynSymNa
  * 对一个方法进行插装
  * dobby_instrument_callback_t
  */
+[[maybe_unused]]
 bool HookUtils::addTrampoline(void *dysym,dobby_instrument_callback_t pre_handler) {
     return DobbyInstrument(dysym,pre_handler) == RT_SUCCESS;
 }
