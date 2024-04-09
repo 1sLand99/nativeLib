@@ -16,7 +16,7 @@ using namespace std;
 /**
  * 当前hook utils的hook模式
  */
-static Hook_MODEL HOOKUTILS_MODEL = Hook_MODEL::HOOK_MODEL_SHADOWHOOK;
+static Hook_MODEL HOOKUTILS_MODEL = Hook_MODEL::HOOK_MODEL_DOBBY;
 
 /**
  * shadowhook
@@ -105,12 +105,16 @@ bool HookUtils::Hooker(void *dysym, void *newrep, void **org) {
             //a function can only be hooked once, and hooking again will report an error
             //SHADOWHOOK_MODE_UNIQUE = 1
             auto ret =shadowhook_init(shadowhook_mode_t::SHADOWHOOK_MODE_UNIQUE,
-                            false);
+                                      false
+            );
             if(ret == SHADOWHOOK_ERRNO_OK) {
                 isInted = true;
             } else{
                 LOG(ERROR) << "shadowhook_init init error  "<<shadowhook_to_errmsg(ret);
             }
+        }else if(HOOKUTILS_MODEL == Hook_MODEL::HOOK_MODEL_DOBBY){
+            //dobby no init
+            isInted = true;
         }
     }
     if (hookedList == nullptr) {

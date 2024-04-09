@@ -4,9 +4,9 @@ enable_language(C ASM)
 
 #------------------shadowhook--------------------------
 include_directories(
-        ${CMAKE_CURRENT_SOURCE_DIR}/ShadowHook/src/main/cpp/include
+        ./ShadowHook/src/main/cpp/include
 )
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ShadowHook/src/main/cpp)
+add_subdirectory(ShadowHook/src/main/cpp)
 #------------------dobby--------------------------
 #设置路径,引入Dobby
 include_directories(

@@ -7,7 +7,6 @@
 #include <utility>
 
 #include "appUtils.h"
-#include "HookUtils.h"
 #include "libpath.h"
 
 using namespace StringUtils;
