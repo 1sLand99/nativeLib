@@ -254,6 +254,7 @@ static bool sh_inst_thumb_is_long_enough(uintptr_t target_addr, size_t overwrite
 static int sh_inst_hook_thumb_with_exit(sh_inst_t *self, uintptr_t target_addr, xdl_info_t *dlinfo,
                                         uintptr_t new_addr, uintptr_t *orig_addr, uintptr_t *orig_addr2) {
   int r;
+  size_t rewrite_len = 0;
   target_addr = SH_UTIL_CLEAR_BIT0(target_addr);
   uintptr_t pc = target_addr + 4;
   self->backup_len = 4;
@@ -276,7 +277,7 @@ static int sh_inst_hook_thumb_with_exit(sh_inst_t *self, uintptr_t target_addr, 
     r = SHADOWHOOK_ERRNO_MPROT;
     goto err;
   }
-  size_t rewrite_len = 0;
+
   SH_SIG_TRY(SIGSEGV, SIGBUS) {
     r = sh_inst_hook_thumb_rewrite(self, target_addr, orig_addr, orig_addr2, &rewrite_len);
   }
