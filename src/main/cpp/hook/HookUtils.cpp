@@ -94,7 +94,7 @@ void HookUtils::setHookerModle(Hook_MODEL modle){
  */
 bool HookUtils::Hooker(void *dysym, void *newrep, void **org) {
     if (dysym == nullptr) {
-        //LOG(ERROR) << "dobby hook org == null ";
+        LOG(ERROR) << "Hooker hook org == null ";
         return false;
     }
     //init hook for shadowhook
