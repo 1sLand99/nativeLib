@@ -1,6 +1,19 @@
 #ifndef WHALE_BASE_MACROS_H_
 #define WHALE_BASE_MACROS_H_
 
+#define async_safe_fatal(...)                                                                                          \
+  do {                                                                                                                 \
+    LOGE(__VA_ARGS__);                                                                                                 \
+    abort();                                                                                                           \
+  } while (0)
+
+#define CHECK(predicate)                                                                                               \
+  do {                                                                                                                 \
+    if (!(predicate)) {                                                                                                \
+      async_safe_fatal("%s:%d: %s CHECK '" #predicate "' failed", __FILE__, __LINE__, __FUNCTION__);                   \
+    }                                                                                                                  \
+  } while (0)
+
 #define DISALLOW_ALLOCATION() \
   public: \
     NO_RETURN ALWAYS_INLINE void operator delete(void*, size_t) { UNREACHABLE(); } \
