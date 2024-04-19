@@ -44,12 +44,13 @@ add_subdirectory(proc_maps_parser)
 add_subdirectory(antiJit)
 add_subdirectory(tracer)
 add_subdirectory(raw_syscall)
+add_subdirectory(netlink)
 
 target_link_libraries(
         nativeLib
         INTERFACE
 
         dlfc libpath adapter utils runtimehook raw_syscall xunwind
-        linkerHandler findsyscall mapshidepath proc_maps_parser antijit
+        linkerHandler findsyscall mapshidepath proc_maps_parser antijit netlink
         tracer
 )

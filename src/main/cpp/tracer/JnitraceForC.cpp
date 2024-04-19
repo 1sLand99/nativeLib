@@ -477,7 +477,7 @@ void Jnitrace::getJObjectInfo(JNIEnv *env, jobject obj, const string &methodname
         return;
     }
     const string temptag =
-            "<<<<<------------------" + methodname + " --------------------->>>>>";
+            "<<<<<------------------" + methodname + " --------------------->>>>>\n";
     WRITE(temptag, true);
     Jnitrace::getJObjectInfoInternal(env, obj, "invoke this object", true, nullptr);
 }
