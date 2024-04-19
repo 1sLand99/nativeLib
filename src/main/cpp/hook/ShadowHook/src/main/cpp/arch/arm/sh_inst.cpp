@@ -274,7 +274,9 @@ static int sh_inst_hook_thumb_with_exit(sh_inst_t *self, uintptr_t target_addr, 
   // rewrite
   if (0 != sh_util_mprotect(target_addr, dlinfo->dli_ssize, PROT_READ | PROT_WRITE | PROT_EXEC)) {
     r = SHADOWHOOK_ERRNO_MPROT;
-    goto err;
+    sh_exit_free(self->exit_addr, self->exit_type, (uint8_t *)(self->exit), sizeof(self->exit));
+    self->exit_addr = 0;  // this is a flag for with-exit or without-exit
+    return r;
   }
   size_t rewrite_len = 0;
   SH_SIG_TRY(SIGSEGV, SIGBUS) {
