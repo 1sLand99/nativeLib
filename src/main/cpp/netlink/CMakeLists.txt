@@ -13,7 +13,7 @@ enable_language(C ASM)
 
 #这个so主要包含各种指纹修改相关函数
 add_library(
-        netlink
+        getMacForNetlink
 
         STATIC
 
@@ -22,7 +22,7 @@ add_library(
 )
 
 target_link_libraries(
-        netlink
+        getMacForNetlink
         ${log-lib}
 )
 

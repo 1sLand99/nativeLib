@@ -51,6 +51,6 @@ target_link_libraries(
         INTERFACE
 
         dlfc libpath adapter utils runtimehook raw_syscall xunwind
-        linkerHandler findsyscall mapshidepath proc_maps_parser antijit netlink
+        linkerHandler findsyscall mapshidepath proc_maps_parser antijit getMacForNetlink
         tracer
 )
