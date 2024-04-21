@@ -101,7 +101,7 @@ void invokePrintf::Stop(){
     if(ArtMethodInvoke!= nullptr){
         HookUtils::unHook(ArtMethodInvoke);
     }
-    if(ArtMethodInvoke!= nullptr){
+    if(art_method_register!= nullptr){
         HookUtils::unHook(art_method_register);
     }
     isPrintf = false;

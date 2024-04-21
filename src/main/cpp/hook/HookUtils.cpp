@@ -25,11 +25,12 @@ static Hook_MODEL HOOKUTILS_MODEL = Hook_MODEL::HOOK_MODEL_DOBBY;
 struct hook_addr_info{
     void* hook_orig;
     void* hook_ret;
+    int hook_moudle;
 };
 /**
  * 保存全部hook的地址,防止某一个方法被多次Hook
  */
-static list<hook_addr_info*> *hookedList = nullptr;
+static list<hook_addr_info*> *hookedList  = new list<hook_addr_info*>();
 
 static bool isInted = false;
 
@@ -38,15 +39,23 @@ static bool isInted = false;
  * @param sym  被Hook函数地址
  */
 bool HookUtils::unHook(void *sym) {
-    if(hookedList == nullptr || hookedList->empty()){
-        LOG(ERROR) << "HookUtils unHook hookedList == nullptr  !!!" ;
+    if(sym == nullptr){
+        LOGE("HookUtils unHook sym == null ")
         return false;
     }
+
     hook_addr_info* info = nullptr;
     for (hook_addr_info* ptr : *hookedList) {
-        if(ptr != nullptr&&ptr->hook_orig == sym){
-            info = ptr;
-            break;
+        if(ptr->hook_moudle == Hook_MODEL::HOOK_MODEL_DOBBY){
+            if(ptr->hook_orig == sym){
+                info = ptr;
+                break;
+            }
+        } else if(ptr->hook_moudle == Hook_MODEL::HOOK_MODEL_SHADOWHOOK){
+            if(ptr->hook_ret == sym){
+                info = ptr;
+                break;
+            }
         }
     }
     if(info == nullptr){
@@ -61,19 +70,18 @@ bool HookUtils::unHook(void *sym) {
     }else if(HOOKUTILS_MODEL == HOOK_MODEL_SHADOWHOOK){
         ret = shadowhook_unhook(info->hook_ret) == SHADOWHOOK_ERRNO_OK;
     }
-    if(hookedList!= nullptr){
-        hookedList->remove(info);
-    }
+    hookedList->remove(info);
     return ret;
 }
 
-#define PUT_PTR(orig,ret) \
-    if(hookedList!= nullptr){ \
+#define PUT_PTR(orig,ret,moudle) \
         hook_addr_info *info  = new hook_addr_info(); \
         info->hook_orig = orig;\
-        info->hook_ret = ret;\
+        info->hook_ret = ret;    \
+        info->hook_moudle = moudle;     \
         hookedList->push_back(info); \
-    } \
+        //LOGI("hook utils success orig -> %p ret -> %p  [%s] ",orig,ret,moudle == Hook_MODEL::HOOK_MODEL_DOBBY?"dobby":"shadowhook" ) \
+
 
 [[maybe_unused]]
 void  HookUtils::startBranchTrampoline(){
@@ -117,18 +125,14 @@ bool HookUtils::Hooker(void *dysym, void *newrep, void **org) {
             isInted = true;
         }
     }
-    if (hookedList == nullptr) {
-        hookedList = new list<hook_addr_info*>();
-    }
-    if(hookedList!= nullptr){
-        //如果这个地址已经被Hook了 。也有可能返回失败 。dobby 会提示 already been hooked 。
-        for (hook_addr_info* ptr: *hookedList) {
-            if (ptr->hook_orig == dysym) {
-                //如果保存了这个地址,说明之前hook成功过,我们也认为hook成功
-                return true;
-            }
+    //如果这个地址已经被Hook了 。也有可能返回失败 。dobby 会提示 already been hooked 。
+    for (hook_addr_info* ptr: *hookedList) {
+        if (ptr->hook_orig == dysym) {
+            //如果保存了这个地址,说明之前hook成功过,我们也认为hook成功
+            return true;
         }
     }
+
     string errorMsg = {};
     if(HOOKUTILS_MODEL == Hook_MODEL::HOOK_MODEL_DOBBY){
         //hook used dobby
@@ -137,8 +141,10 @@ bool HookUtils::Hooker(void *dysym, void *newrep, void **org) {
                         reinterpret_cast<dobby_dummy_func_t *>(org)
                         )== RT_SUCCESS;
         if(ret){
-            PUT_PTR(dysym, nullptr)
+            PUT_PTR(dysym, nullptr,Hook_MODEL::HOOK_MODEL_DOBBY)
             return true;
+        } else{
+            LOG(ERROR) << "HookUtils::Hooker dobby hook ret == false";
         }
     }else if(HOOKUTILS_MODEL == Hook_MODEL::HOOK_MODEL_SHADOWHOOK){
         void* sub = shadowhook_hook_func_addr(dysym,
@@ -146,11 +152,12 @@ bool HookUtils::Hooker(void *dysym, void *newrep, void **org) {
                                         org
         );
         if(sub!= nullptr){
-            PUT_PTR(dysym,sub)
+            PUT_PTR(dysym,sub,Hook_MODEL::HOOK_MODEL_SHADOWHOOK)
             return true;
         }else{
             int err_num = shadowhook_get_errno();
             errorMsg = shadowhook_to_errmsg(err_num);
+            LOG(ERROR) << "HookUtils::Hooker shadowhook hook ret == false";
         }
     }
     Dl_info info;
