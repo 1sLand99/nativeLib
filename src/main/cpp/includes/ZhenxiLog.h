@@ -30,7 +30,7 @@ env->FatalError("FATAL_FOR_JNI called.");\
 
 
 #ifdef ZHENXI_BUILD_TYPE_NOLOG
-
+#define LOGEX(...)   ((void)0);
 #define LOGE(...)   ((void)0);
 #define LOGI(...)   ((void)0);
 #define LOGD(...)   ((void)0);
@@ -45,7 +45,10 @@ env->FatalError("FATAL_FOR_JNI called.");\
 
 #else
 
-
+#define LOGEX(...) \
+    __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__); \
+    __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__); \
+    __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__);  \
 
 #define LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__);
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG ,__VA_ARGS__);
