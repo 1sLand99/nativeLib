@@ -24,6 +24,7 @@ struct sockaddr_ll {
  * 如果name传入null则不进行比较,只进行输出。
  */
 bool getMacForNetLink(char *mac, char *name, int type) {
+#if __ANDROID_API__ >= 24
     if (get_sdk_level() > ANDROID_N) {
         bool isFind = false;
         struct ifaddrs *ifap, *ifaptr;
@@ -154,6 +155,9 @@ bool getMacForNetLink(char *mac, char *name, int type) {
         return isFind;
     }
     return false;
+#else
+    return false;
+#endif
 }
 
 void printNetlinkerInfo(int type) {
