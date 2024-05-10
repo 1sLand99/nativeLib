@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.4.1)
 project(nativeLib)
 ENABLE_LANGUAGE(ASM)
 message(STATUS "nativeLib start building ")
+#minSdk
+add_definitions(-D__ANDROID_API__=${ANDROID_PLATFORM_LEVEL})
 
 #basic optimization
 if (ZHENXI_BUILD_TYPE STREQUAL "Release")
