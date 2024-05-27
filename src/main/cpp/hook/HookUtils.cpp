@@ -91,6 +91,10 @@ void  HookUtils::startBranchTrampoline(){
 void HookUtils::setHookerModle(Hook_MODEL modle){
     HOOKUTILS_MODEL = modle;
 }
+bool HookUtils::Hooker(void *dysym, void *newrep, void **org,std::string tag) {
+    LOG(ERROR) << "hook utils add hook tag >  "<<tag;
+    return HookUtils::Hooker(dysym, newrep, org);
+}
 /**
  * Hook的整体封装,这个方法可以切换别的Hook框架
  * 先尝试用DobbyHook 如果Hook失败的话用InlineHook二次尝试

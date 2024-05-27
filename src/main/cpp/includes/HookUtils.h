@@ -62,6 +62,7 @@ HOOK_SYM(sym##name,name)
 class HookUtils {
 public:
     static void setHookerModle(Hook_MODEL modle);
+    static bool Hooker(void *dysym, void *repl, void **org,std::string tag);
 
     static bool Hooker(void *dysym, void *repl, void **org);
 
