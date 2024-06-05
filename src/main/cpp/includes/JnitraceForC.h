@@ -62,7 +62,7 @@ private:
     static std::list<string> forbidSoList;
     static bool isSave;
     static string match_so_name;
-    static std::mutex supernode_ids_mux_;
+
     /**
      * 在打印枚举的时候发现可能会被当成object去打印
      * 导致报错

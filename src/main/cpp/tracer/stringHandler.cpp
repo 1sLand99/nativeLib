@@ -106,7 +106,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
 
     static bool isSave = false;
     static char match_so_name[MATCH_SO_NAME_SIZE] = {};
-    static std::mutex supernode_ids_mux_;
+    //static std::mutex supernode_ids_mux_;
 
 
     static bool isAppFile(const char *path) {
