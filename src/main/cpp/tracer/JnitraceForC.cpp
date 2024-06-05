@@ -13,7 +13,7 @@ std::list<string> Jnitrace::filterSoList = {};
 std::list<string> Jnitrace::forbidSoList = {};
 bool Jnitrace::isSave = false;
 string Jnitrace::match_so_name = {};
-std::mutex Jnitrace::supernode_ids_mux_;
+//std::mutex Jnitrace::supernode_ids_mux_;
 /**
  * 是否监听第二级返回结果。
 */
