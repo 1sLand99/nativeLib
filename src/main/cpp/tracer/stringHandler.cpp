@@ -109,113 +109,13 @@ namespace ZhenxiRunTime::stringHandlerHook {
     //static std::mutex supernode_ids_mux_;
 
 
-    static bool isAppFile(const char *path) {
-        if (my_strstr(path, "/data/") != nullptr) {
-            return true;
-        }
-        return false;
-    }
-
-    const char *getFileNameForPath(const char *path) {
-        const char *fileName = strrchr(path, '/');
-        if (fileName != nullptr) {
-            return fileName + 1;
-        }
-        return path;
-    }
-
-# define DL_INFO \
-    Dl_info info={0}; \
-    int addr_ret_0 = dladdr((void *) __builtin_return_address(0), &info); \
-
-# define IS_MATCH \
-        if(ZhenxiRunTime::stringHandlerHook::isLister(addr_ret_0,&info)){  \
-
-
-    static bool isLister(int dladd_ret, Dl_info *info) {
-        if (dladd_ret == 0) {
-            return false;
-        }
-        if (info == nullptr) {
-            return false;
-        }
-        const char *name = info->dli_fname;
-
-        if (name == nullptr) {
-            return false;
-        }
-        //系统apk暂不处理,只监听当前apk包下的
-        if (!isAppFile(name)) {
-            return false;
-        }
-        //如果是已经过滤的apk也暂不处理
-        //比如我们注入的SO文件
-        for (auto forbid: forbidSoList) {
-            if (my_strstr(name, forbid) != nullptr) {
-                //找到了则不进行处理
-                return false;
-            }
-        }
-        //如果是监听全部直接返回true
-        if (isHookAll) {
-            CLEAN_APPEND(match_so_name, getFileNameForPath(name), MATCH_SO_NAME_SIZE);
-            return true;
-        } else {
-            //根据关键字进行过滤
-            for (auto filter: filterSoList) {
-                //默认监听一级
-                if (my_strstr(name, filter) != nullptr) {
-                    CLEAN_APPEND(match_so_name, getFileNameForPath(name), MATCH_SO_NAME_SIZE);
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-
-    char *getAddressHex(void *ptr) {
-        if (ptr == nullptr) {
-            return nullptr;
-        }
-        char *buffer = (char *) malloc(20);
-        sprintf(buffer, "0x%lx", (uintptr_t) ptr);
-        return buffer;
-    }
-
-    static void write(const char *msg, Dl_info info) {
-        INIT_ORIG_BUFF
-        if ((size_t) info.dli_fbase > 0) {
-            GET_ADDRESS
-            if (address != nullptr) {
-                APPEND(buff, "<")
-                APPEND(buff, address)
-                APPEND(buff, ">")
-                free((void *) address);
-            }
-        }
-        APPEND(buff, "[")
-        APPEND(buff, match_so_name)
-        APPEND(buff, "]")
-        APPEND(buff, msg)
-        if (isSave) {
-            if (hookStrHandlerOs != nullptr) {
-                (*hookStrHandlerOs) << buff;
-            }
-        }
-        LOG(INFO) << buff;
-        if (msg != nullptr) {
-            free((void *) msg);
-        }
-        if (buff != nullptr) {
-            free((void *) buff);
-        }
-    }
 
 
 
 
 
-// char* strstr(char* h, const char* n)
+
+    // char* strstr(char* h, const char* n)
     HOOK_DEF(char*, strstr, char *h, const char *n) {
         DL_INFO
         IS_MATCH char *ret = orig_strstr(h, n);
@@ -239,16 +139,6 @@ namespace ZhenxiRunTime::stringHandlerHook {
         DL_INFO
         IS_MATCH size_t size = orig_strlen(__s);
             if (size > 0) {
-//                if(my_strstr(__s,"r-")||
-//                my_strstr(__s,".ttf")||
-//                my_strstr(__s,".so")||
-//                my_strstr(__s,"__")
-//                ) {
-//                    return size;
-//                }
-//                if(size<3) {
-//                    return size;
-//                }
                 INIT_ORIG_BUFF
                 APPEND(buff, "strlen() arg1 -> ")
                 APPEND(buff, IS_NULL(__s))
@@ -274,7 +164,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
         }
         return orig___strlen_chk(__s, a2);
     }
-//char* strcat(char* __dst, const char* __src);
+    //char* strcat(char* __dst, const char* __src);
     HOOK_DEF(char *, strcat, char *__dst, const char *__src) {
         DL_INFO
         IS_MATCH char *ret = orig_strcat(__dst, __src);
@@ -294,7 +184,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
         }
         return orig_strcat(__dst, __src);
     }
-//int strcmp(const char* __lhs, const char* __rhs)
+    //int strcmp(const char* __lhs, const char* __rhs)
     HOOK_DEF(int, strcmp, const char *__lhs, const char *__rhs) {
         DL_INFO
         IS_MATCH int ret = orig_strcmp(__lhs, __rhs);
@@ -308,7 +198,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             return ret; }
         return orig_strcmp(__lhs, __rhs);
     }
-//char* strcpy(char* __dst, const char* __src);
+    //char* strcpy(char* __dst, const char* __src);
     HOOK_DEF(char *, strcpy, char *__dst, const char *__src) {
 
         DL_INFO
@@ -326,7 +216,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
         }
         return orig_strcpy(__dst, __src);
     }
-//int sprintf(char* __s, const char* __fmt, ...)
+    //int sprintf(char* __s, const char* __fmt, ...)
     HOOK_DEF(int, sprintf, char *__s, const char *__fmt, char *p...) {
         DL_INFO
         IS_MATCH int ret = orig_sprintf(__s, __fmt, p);
@@ -345,7 +235,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
 
         return orig_sprintf(__s, __fmt, p);
     }
-//int printf(const char* __fmt, ...)
+    //int printf(const char* __fmt, ...)
     HOOK_DEF(int, printf, const char *__fmt, char *p...) {
         DL_INFO
         IS_MATCH int ret = orig_printf(__fmt, p);
@@ -362,7 +252,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
 
         return orig_printf(__fmt, p);
     }
-//char *strtok(char *str, const char *delim)
+    //char *strtok(char *str, const char *delim)
     HOOK_DEF(char *, strtok, char *str, const char *delim) {
         DL_INFO
         IS_MATCH char *ret = orig_strtok(str, delim);
@@ -376,7 +266,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             return ret; }
         return orig_strtok(str, delim);
     }
-//char* strdup(const char* __s);
+    //char* strdup(const char* __s);
     HOOK_DEF(char*, strdup, char *__s) {
 
         DL_INFO
@@ -394,8 +284,8 @@ namespace ZhenxiRunTime::stringHandlerHook {
     }
 
 
-//把 str1 和 str2 进行比较，结果取决于 LC_COLLATE 的位置设置。
-//int strcoll(const char* __lhs, const char* __rhs) __attribute_pure__;
+    //把 str1 和 str2 进行比较，结果取决于 LC_COLLATE 的位置设置。
+    //int strcoll(const char* __lhs, const char* __rhs) __attribute_pure__;
     HOOK_DEF(int, strcoll, const char *__lhs, const char *__rhs) {
         DL_INFO
         IS_MATCH int ret = orig_strcoll(__lhs, __rhs);
@@ -412,7 +302,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
         }
         return orig_strcoll(__lhs, __rhs);
     }
-//size_t strxfrm(char *dest, const char *src, size_t n)
+    //size_t strxfrm(char *dest, const char *src, size_t n)
     HOOK_DEF(size_t, strxfrm, char *dest, const char *src, size_t n) {
 
         DL_INFO
@@ -429,7 +319,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
         }
         return orig_strxfrm(dest, src, n);
     }
-//char* fgets(char* __buf, int __size, FILE* __fp);
+    //char* fgets(char* __buf, int __size, FILE* __fp);
     HOOK_DEF(char*, fgets, char *__buf, int __size, FILE *__fp) {
         DL_INFO
         IS_MATCH char *ret = orig_fgets(__buf, __size, __fp);
@@ -473,7 +363,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
 
         return orig_memcpy(destin, source, __n);
     }
-//int snprintf(char* __buf, size_t __size, const char* __fmt, ...) __printflike(3, 4);
+    //int snprintf(char* __buf, size_t __size, const char* __fmt, ...) __printflike(3, 4);
     HOOK_DEF(int, snprintf, char *__buf, size_t __size, const char *__fmt, char *p  ...) {
         DL_INFO
         IS_MATCH int ret = orig_snprintf(__buf, __size, __fmt, p);
@@ -512,7 +402,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
         }
         return orig_malloc(__byte_count);
     }
-//int vsnprintf(char* __buf, size_t __size, const char* __fmt, va_list __args) __printflike(3, 0);
+    //int vsnprintf(char* __buf, size_t __size, const char* __fmt, va_list __args) __printflike(3, 0);
     HOOK_DEF(int, vsnprintf, char *__buf, size_t __size, const char *__fmt, va_list __args) {
         DL_INFO
         IS_MATCH
@@ -581,7 +471,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
         }
         return orig_strlwr(str);
     }
-//char *strupr(char *str)
+    //char *strupr(char *str)
     HOOK_DEF(char *, strupr, char *str) {
         DL_INFO
         IS_MATCH
@@ -595,7 +485,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
         }
         return orig_strupr(str);
     }
-//char *strchr(const char *str, int c)
+    //char *strchr(const char *str, int c)
     HOOK_DEF(char *, strchr, const char *str, int c) {
         DL_INFO
         IS_MATCH
