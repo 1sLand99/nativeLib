@@ -39,7 +39,9 @@
 #include <iostream>
 #include <fstream>
 
-#include "stringHandler.h"
+#include "StringHandler.h"
+#include "TracerBase.h"
+
 #include "HookUtils.h"
 #include "mylibc.h"
 #include "stringUtils.h"
@@ -49,71 +51,13 @@
 
 
 using namespace StringUtils;
+
+
 /**
- * 因为需要hook一些string处理的函数,所以尽可能使用C语言去实现这些功能
+ * 因为需要hook一些string处理的函数,所以尽可能使用C语言去实现这些功能。
+ * 否则会和string hook冲突
  */
 namespace ZhenxiRunTime::stringHandlerHook {
-
-#define  ORIG_BUFF_SIZE  100
-
-#define  MATCH_SO_NAME_SIZE  100
-
-#define  MAX_PRINTF_SIZE  PATH_MAX
-
-#define INIT_ORIG_BUFF \
-    char *buff = (char*)malloc(ORIG_BUFF_SIZE); \
-    my_memset(buff,0,ORIG_BUFF_SIZE); \
-
-#define HOOK_SYMBOL_DOBBY(handle, func)  \
-  hook_libc_function(handle, #func, (void*) new_##func, (void**) &orig_##func); \
-
-//这块是为了防止他把一个void*当成char*去strlen挂掉
-# define IS_NULL(value) value \
-
-# define APPEND_INT(buff, value) \
-     char* int_value = int_to_str(value);           \
-     if(int_value!=nullptr){                           \
-        APPEND(buff,int_value);                   \
-        free(int_value);                           \
-     }
-
-
-# define APPEND(buff, value) \
-     if(my_strlen(value)>0){     \
-        buff = (char *)realloc(buff,my_strlen(buff)+my_strlen(value)+1); \
-        my_strcat(buff,value);  \
-     }  \
-
-#define GET_ADDRESS \
- auto address = getAddressHex((void*)((char *) \
-            __builtin_return_address(0) - ((size_t) info.dli_fbase))); \
-
-
-# define CLEAN_APPEND(buff, value, size) \
-     my_memset(buff,0,size); \
-     my_strcat(buff,value);  \
-
-    /**
-     * 是否监听第二级返回结果。
-     *
-     */
-    static bool isHookSecondRet = false;
-
-    static std::ofstream *hookStrHandlerOs;
-    static char *filterSoList[100] = {};
-    static char *forbidSoList[100] = {};
-    static bool isHookAll = false;
-
-    static bool isSave = false;
-    static char match_so_name[MATCH_SO_NAME_SIZE] = {};
-    //static std::mutex supernode_ids_mux_;
-
-
-
-
-
-
-
 
     // char* strstr(char* h, const char* n)
     HOOK_DEF(char*, strstr, char *h, const char *n) {
@@ -126,7 +70,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
                 APPEND(buff, "  arg2-> ")
                 APPEND(buff, IS_NULL(n))
                 APPEND(buff, "\n")
-                write(buff, info);
+                WRITE(buff, info);
             }
             return ret;
 
@@ -137,30 +81,30 @@ namespace ZhenxiRunTime::stringHandlerHook {
     //size_t strlen(const char* __s)
     HOOK_DEF(size_t, strlen, const char *__s) {
         DL_INFO
-        IS_MATCH size_t size = orig_strlen(__s);
-            if (size > 0) {
+        IS_MATCH size_t ret = orig_strlen(__s);
+            if (ret > 0) {
                 INIT_ORIG_BUFF
                 APPEND(buff, "strlen() arg1 -> ")
                 APPEND(buff, IS_NULL(__s))
                 APPEND(buff, "\n")
-                write(buff, info);
+                WRITE(buff, info);
             }
-            return size; }
+            return ret; }
         return orig_strlen(__s);
     }
     //size_t __strlen_chk(const char *a1, size_t a2)
     HOOK_DEF(size_t, __strlen_chk, const char *__s, size_t a2) {
         DL_INFO
         IS_MATCH
-            size_t size = orig___strlen_chk(__s, a2);
-            if (size > 0) {
+            size_t ret = orig___strlen_chk(__s, a2);
+            if (ret > 0) {
                 INIT_ORIG_BUFF
                 APPEND(buff, "strlen_chk() arg1 -> ")
                 APPEND(buff, IS_NULL(__s))
                 APPEND(buff, "\n")
-                write(buff, info);
+                WRITE(buff, info);
             }
-            return size;
+            return ret;
         }
         return orig___strlen_chk(__s, a2);
     }
@@ -178,7 +122,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
                 APPEND(buff, IS_NULL(ret))
             }
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
 
         }
@@ -194,7 +138,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "  arg2-> ")
             APPEND(buff, IS_NULL(__rhs))
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret; }
         return orig_strcmp(__lhs, __rhs);
     }
@@ -210,7 +154,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, IS_NULL(__src))
 
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
 
         }
@@ -228,7 +172,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "  arg3-> ")
             APPEND(buff, IS_NULL(p))
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
 
         }
@@ -245,7 +189,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "  arg2-> ")
             APPEND(buff, IS_NULL(p))
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
 
         }
@@ -262,7 +206,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "  arg2-> ")
             APPEND(buff, IS_NULL(delim))
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret; }
         return orig_strtok(str, delim);
     }
@@ -271,13 +215,13 @@ namespace ZhenxiRunTime::stringHandlerHook {
 
         DL_INFO
         IS_MATCH
-
+            char *ret =orig_strdup(__s);
             INIT_ORIG_BUFF
             APPEND(buff, "strdup() arg1 -> ")
             APPEND(buff, IS_NULL(__s))
             APPEND(buff, "\n")
-            write(buff, info);
-            return orig_strdup(__s);
+            WRITE(buff, info);
+            return ret;
 
         }
         return orig_strdup(__s);
@@ -296,7 +240,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "  arg2-> ")
             APPEND(buff, IS_NULL(__rhs))
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
 
         }
@@ -313,7 +257,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "  arg2-> ")
             APPEND(buff, IS_NULL(src))
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
 
         }
@@ -329,7 +273,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "  arg2-> ")
             APPEND_INT(buff, __size)
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
 
         }
@@ -357,7 +301,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "  arg3-> ")
             APPEND_INT(buff, __n)
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
         }
 
@@ -378,7 +322,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "  arg3-> ")
             APPEND(buff, IS_NULL(__fmt))
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
 
         }
@@ -396,7 +340,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "malloc() arg1 -> ")
             APPEND_INT(buff, __byte_count)
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
 
         }
@@ -415,7 +359,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "  arg3-> ")
             APPEND(buff, IS_NULL(__fmt))
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
         }
         return orig_vsnprintf(__buf, __size, __fmt, __args);
@@ -432,7 +376,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "  arg3-> ")
             APPEND_INT(buff, n)
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
 
         }
@@ -452,7 +396,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "  arg3-> ")
             APPEND_INT(buff, n)
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
         }
         return orig_strncat(dest, src, n);
@@ -466,7 +410,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "strlwr() arg1 -> ")
             APPEND(buff, IS_NULL((char *) str))
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
         }
         return orig_strlwr(str);
@@ -480,7 +424,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "strupr() arg1 -> ")
             APPEND(buff, IS_NULL((char *) str))
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
         }
         return orig_strupr(str);
@@ -496,7 +440,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
             APPEND(buff, "  arg2-> ")
             APPEND_INT(buff, c)
             APPEND(buff, "\n")
-            write(buff, info);
+            WRITE(buff, info);
             return ret;
         }
         return orig_strchr(str, c);
@@ -507,7 +451,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
 
 using namespace ZhenxiRunTime::stringHandlerHook;
 
-void stringHandler::init() {
+void init_string_handler() {
     void *handle = dlopen("libc.so", RTLD_NOW);
 
     if (handle == nullptr) {
@@ -555,44 +499,37 @@ void stringHandler::init() {
     LOG(ERROR) << ">>>>>>>>> string handler init success !  ";
 }
 
-void stringHandler::hookStrHandler(bool hookAll, const std::list<string> &forbid_list,
-                                   const std::list<string> &filter_list, std::ofstream *os) {
+void StringHandler::init(JNIEnv *env,
+                         bool hookAll,
+                         const std::list<std::string> &forbid_list,
+                         const std::list<std::string> &filter_list,
+                         std::ofstream *os) {
     isHookAll = hookAll;
+    LOGE("start StringHandler trace is hook all %s", isHookAll ? "true" : "false")
+    for (const std::string &str: forbid_list) {
+        LOGE("start StringHandler trace forbid_list %s", str.c_str())
+    }
 
-    int i = 0;
-    for (const auto &string: forbid_list) {
-        forbidSoList[i] = strdup(string.c_str());
-        LOG(ERROR) << "forbidSoList -> " << i << " " << forbidSoList[i];
-        i++;
-    }
-    i = 0;
-    for (const auto &string: filter_list) {
-        filterSoList[i] = strdup(string.c_str());
-        LOG(ERROR) << "filterSoList -> " << i << " " << filterSoList[i];
-        i++;
-    }
+    //copy orig list
+    forbidSoList = std::list<string>(forbid_list);
+    filterSoList = std::list<string>(filter_list);
     if (os != nullptr) {
         isSave = true;
-        hookStrHandlerOs = os;
-    } else {
-        LOG(ERROR) << ">>>>>>>>>>>>> string handler init fail hookStrHandlerOs == null  ";
+        traceOs = os;
     }
-    init();
+
+    init_string_handler();
 }
 
 [[maybe_unused]]
-void stringHandler::stopjnitrace() {
-    for (auto str: forbidSoList) {
-        free(str);
-    }
-    for (auto str: filterSoList) {
-        free(str);
-    }
-    if (hookStrHandlerOs != nullptr) {
-        if (hookStrHandlerOs->is_open()) {
-            hookStrHandlerOs->close();
+void StringHandler::stop() {
+    filterSoList.clear();
+    forbidSoList.clear();
+    if (traceOs != nullptr) {
+        if (traceOs->is_open()) {
+            traceOs->close();
         }
-        delete hookStrHandlerOs;
+        delete traceOs;
     }
     isSave = false;
 }

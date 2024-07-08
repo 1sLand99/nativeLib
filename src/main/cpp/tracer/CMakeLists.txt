@@ -13,8 +13,8 @@ add_library(
         HookClassUtils.cpp
         invokePrintf.cpp
         JnitraceForC.cpp
-        stringHandler.cpp
-
+        StringHandler.cpp
+        TracerBase.cpp
 )
 
 target_link_libraries(

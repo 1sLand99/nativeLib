@@ -43,15 +43,26 @@
 #include <iostream>
 #include <fstream>
 
+#include "ITracerBase.h"
+
+
+
 #define  ORIG_BUFF_SIZE  100
-
 #define  MATCH_SO_NAME_SIZE  100
-
 #define  MAX_PRINTF_SIZE  PATH_MAX
 
 #define INIT_ORIG_BUFF \
     char *buff = (char*)malloc(ORIG_BUFF_SIZE); \
+    if(buff == NULL){return ret; }                   \
     my_memset(buff,0,ORIG_BUFF_SIZE); \
+
+# define APPEND(buff, value) \
+     if(my_strlen(value)>0){     \
+        buff = (char *)realloc(buff,my_strlen(buff)+my_strlen(value)+1); \
+        if(buff == NULL){ return ret; }                     \
+        my_strcat(buff,value);  \
+     }  \
+
 
 #define HOOK_SYMBOL_DOBBY(handle, func)  \
   hook_libc_function(handle, #func, (void*) new_##func, (void**) &orig_##func); \
@@ -66,14 +77,10 @@
         free(int_value);                           \
      }
 
-# define APPEND(buff, value) \
-     if(my_strlen(value)>0){     \
-        buff = (char *)realloc(buff,my_strlen(buff)+my_strlen(value)+1); \
-        my_strcat(buff,value);  \
-     }  \
+
 
 #define GET_ADDRESS \
- auto address = getAddressHex((void*)((char *) \
+ auto address = TracerBase::getAddressHex((void*)((char *) \
             __builtin_return_address(0) - ((size_t) info.dli_fbase))); \
 
 
@@ -86,16 +93,47 @@
     int addr_ret_0 = dladdr((void *) __builtin_return_address(0), &info); \
 
 # define IS_MATCH \
-        if(StringHooker::isLister(addr_ret_0,&info)){  \
+        if(TracerBase::isLister(addr_ret_0,&info)){ \
+
+# define WRITE TracerBase::write \
 
 
-class TracerBase {
-    public:
-        static void write(const char *msg, Dl_info info) ;
-        static char *getAddressHex(void *ptr);
-        static bool isLister(int dladd_ret, Dl_info *info);
-        static bool isAppFile(const char *path);
-        static const char *getFileNameForPath(const char *path);
+
+class TracerBase : public ITracerBase{
+public:
+
+    virtual void init(JNIEnv *env,
+              bool hookAll,
+              const std::list<std::string> &forbid_list,
+              const std::list<std::string> &filter_list,
+              std::ofstream *os) = 0;
+
+    virtual void stop() = 0;
+
+    static bool isHookAll;
+    static std::ofstream *traceOs;
+    static std::list<std::string> filterSoList;
+    static std::list<std::string> forbidSoList;
+    static bool isSave;
+    static std::string match_so_name;
+
+
+    /**
+      * 是否监听第二级返回结果。
+    */
+    static bool isHookSecondRet;
+
+    static void write(const char *msg, Dl_info info);
+    static void write(const std::string &msg);
+    static void write(const std::string &msg, [[maybe_unused]] bool isApart);
+
+    static char *getAddressHex(void *ptr);
+
+    static bool isLister(int dladd_ret, Dl_info *info);
+
+    static bool isAppFile(const char *path);
+
+    static std::string getFileNameForPath(const char *path);
 };
 
 
