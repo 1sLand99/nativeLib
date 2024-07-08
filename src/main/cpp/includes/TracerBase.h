@@ -51,17 +51,26 @@
 #define  MATCH_SO_NAME_SIZE  100
 #define  MAX_PRINTF_SIZE  PATH_MAX
 
-#define INIT_ORIG_BUFF \
-    char *buff = (char*)malloc(ORIG_BUFF_SIZE); \
-    if(buff == NULL){return ret; }                   \
-    my_memset(buff,0,ORIG_BUFF_SIZE); \
+//#define INIT_ORIG_BUFF \
+//    char *buff = (char*)malloc(ORIG_BUFF_SIZE); \
+//    if(buff == NULL){return ret; }                   \
+//    my_memset(buff,0,ORIG_BUFF_SIZE); \
+//
+//# define APPEND(buff, value) \
+//     if(my_strlen(value)>0){     \
+//        buff = (char *)realloc(buff,my_strlen(buff)+my_strlen(value)+1); \
+//        if(buff == NULL){ return ret; }                     \
+//        my_strcat(buff,value);  \
+//     }  \
 
-# define APPEND(buff, value) \
-     if(my_strlen(value)>0){     \
-        buff = (char *)realloc(buff,my_strlen(buff)+my_strlen(value)+1); \
-        if(buff == NULL){ return ret; }                     \
-        my_strcat(buff,value);  \
-     }  \
+
+
+#define INIT_ORIG_BUFF string buff;
+
+#define APPEND(buff, value) buff.append(value);
+
+
+
 
 
 #define HOOK_SYMBOL_DOBBY(handle, func)  \
@@ -124,6 +133,7 @@ public:
     static bool isHookSecondRet;
 
     static void write(const char *msg, Dl_info info);
+    static void write(const std::string &msg, Dl_info info);
     static void write(const std::string &msg);
     static void write(const std::string &msg, [[maybe_unused]] bool isApart);
 

@@ -58,6 +58,29 @@ void TracerBase::write(const std::string &msg) {
     LOG(INFO) << "[" << match_so_name << "] " << msg.c_str();
 }
 
+void TracerBase::write(const std::string &msg, Dl_info info) {
+    string buff = {};
+    if ((size_t) info.dli_fbase > 0) {
+        GET_ADDRESS
+        if (address != nullptr) {
+            buff.append("<");
+            buff.append(address);
+            buff.append(">");
+        }
+    }
+    buff.append("[");
+    buff.append(match_so_name);
+    buff.append("]");
+    buff.append(msg);
+
+    if (isSave) {
+        if (traceOs != nullptr) {
+            (*traceOs) << buff;
+        }
+    }
+    LOG(INFO) << buff;
+
+}
 void TracerBase::write(const char *msg, Dl_info info) {
     string buff = {};
     if ((size_t) info.dli_fbase > 0) {
