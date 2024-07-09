@@ -113,20 +113,20 @@ void invokePrintf::HookRegisterNative(JNIEnv *env,std::ofstream *os) {
         isSave = true;
     }
     if (invokePrintf_org_PrettyMethodSym == nullptr) {
-        void *PrettyMethodSym = getSymCompat(getlibArtPath().c_str(), "_ZN3art9ArtMethod12PrettyMethodEb");
+        void *PrettyMethodSym = HookUtils::getSymCompat(getlibArtPath().c_str(), "_ZN3art9ArtMethod12PrettyMethodEb");
         invokePrintf_org_PrettyMethodSym = reinterpret_cast<std::string(*)(void *, bool)>(PrettyMethodSym);
     }
     if (android_get_device_api_level() < ANDROID_S) {
         //android 11
-        art_method_register = getSymCompat(getlibArtPath().c_str(),
+        art_method_register = HookUtils::getSymCompat(getlibArtPath().c_str(),
                                            "_ZN3art9ArtMethod14RegisterNativeEPKv");
         if (art_method_register == nullptr) {
-            art_method_register = getSymCompat(getlibArtPath().c_str(),
+            art_method_register = HookUtils::getSymCompat(getlibArtPath().c_str(),
                                                "_ZN3art9ArtMethod14RegisterNativeEPKvb");
         }
     } else {
         //12以上
-        art_method_register = getSymCompat(getlibArtPath().c_str(),
+        art_method_register = HookUtils::getSymCompat(getlibArtPath().c_str(),
                                            "_ZN3art11ClassLinker14RegisterNativeEPNS_6ThreadEPNS_9ArtMethodEPKv");
     }
     bool isSuccess;
@@ -152,14 +152,14 @@ void invokePrintf::HookJNIInvoke(JNIEnv *env,std::ofstream *os) {
         isSave = true;
     }
     if (invokePrintf_org_PrettyMethodSym == nullptr) {
-        void *PrettyMethodSym = getSymCompat(getlibArtPath().c_str(), "_ZN3art9ArtMethod12PrettyMethodEb");
+        void *PrettyMethodSym = HookUtils::getSymCompat(getlibArtPath().c_str(), "_ZN3art9ArtMethod12PrettyMethodEb");
         if(PrettyMethodSym == nullptr){
-            PrettyMethodSym = getSymCompat(getlibArtPath().c_str(), "_ZN3art9ArtMethod12PrettyMethodEPS0_b");
+            PrettyMethodSym = HookUtils::getSymCompat(getlibArtPath().c_str(), "_ZN3art9ArtMethod12PrettyMethodEPS0_b");
         }
         invokePrintf_org_PrettyMethodSym = reinterpret_cast<std::string(*)(void *, bool)>(PrettyMethodSym);
     }
     //artmethod->invoke
-    ArtMethodInvoke = getSymCompat(getlibArtPath().c_str(),
+    ArtMethodInvoke = HookUtils::getSymCompat(getlibArtPath().c_str(),
                  "_ZN3art9ArtMethod6InvokeEPNS_6ThreadEPjjPNS_6JValueEPKc");
     if(ArtMethodInvoke == nullptr){
 

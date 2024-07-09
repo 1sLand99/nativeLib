@@ -173,7 +173,27 @@ bool HookUtils::Hooker(void *dysym, void *newrep, void **org) {
     return false;
 
 }
-
+void *HookUtils::getSymCompat(const char *filepath,const char *symbol){
+    void *handler = xdl_open(filepath, XDL_DEFAULT);
+    if(handler == nullptr){
+        //如果做了文件隐藏可能拿不到libart.so
+        LOGE("getSymCompat get handler == null %s",filepath)
+        return nullptr;
+    }
+    void *sym = getSymCompatForHandler(handler, symbol);
+    xdl_close(handler);
+    return sym;
+}
+void *HookUtils::getSymCompatForHandler(void *handler,const char *symbol){
+    void *sym = xdl_sym(handler, symbol, NULL);
+    if(sym == nullptr){
+        sym = xdl_dsym(handler, symbol, NULL);
+    }
+    if(sym == nullptr){
+        LOGW("getSymCompat get sym == null %s",symbol)
+    }
+    return sym;
+}
 bool HookUtils::Hooker(void *handler, const char *dysym, void *repl, void **org) {
     void *sym = getSymCompatForHandler(handler, dysym);
     if (sym == nullptr) {

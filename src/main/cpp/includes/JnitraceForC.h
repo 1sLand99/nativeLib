@@ -10,33 +10,6 @@
 
 
 class Jnitrace : TracerBase{
-
-public:
-
-    void init(JNIEnv *env,
-              bool hookAll,
-              const std::list<std::string> &forbid_list,
-              const std::list<std::string> &filter_list,
-              std::ofstream *os) override;
-    void stop() override;
-    /**
-     * 设置toString方法调用的java方法
-     */
-    void setAuxiliaryClazz(jclass clazz);
-
-    static void
-    getArgsInfo(JNIEnv *env, jobject obj, jmethodID jmethodId, va_list args, bool isStatic);
-
-    static void getJObjectInfo(JNIEnv *env, jobject obj, const string &methodname);
-
-    static string getJObjectToString(JNIEnv *env, jobject obj, const char *classInfo);
-
-    static void
-    getJObjectInfoInternal(JNIEnv *env, jobject obj, string message, bool isPrintClassinfo,
-                           const char *classinfo);
-
-    static string getJObjectClassInfo(JNIEnv *env, jobject obj);
-
 private:
     static jmethodID object_method_id_toString;
     /**
@@ -49,6 +22,33 @@ private:
     static jclass auxiliary_clazz;
 
     static jmethodID auxiliary_clazz_method_id_toString ;
+public:
+
+    void init(JNIEnv *env,
+              bool hookAll,
+              const std::list<std::string> &forbid_list,
+              const std::list<std::string> &filter_list,
+              std::ofstream *os) override;
+    void stop() override;
+    /**
+     * 设置toString方法调用的java方法
+     */
+    static void setAuxiliaryClazz(jclass clazz);
+
+    static void
+    getArgsInfo(JNIEnv *env, jobject obj, jmethodID jmethodId, va_list args, bool isStatic,Dl_info info);
+
+    static void getJObjectInfo(JNIEnv *env, jobject obj, const string &methodname,Dl_info info);
+
+    static string getJObjectToString(JNIEnv *env, jobject obj, const char *classInfo);
+
+    static void
+    getJObjectInfoInternal(JNIEnv *env, jobject obj, string message, bool isPrintClassinfo,
+                           const char *classinfo,Dl_info info);
+
+    static string getJObjectClassInfo(JNIEnv *env, jobject obj);
+
+
 
 };
 

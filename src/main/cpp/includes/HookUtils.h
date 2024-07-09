@@ -78,6 +78,8 @@ public:
 
     static bool unHook(void *sym);
 
+    static void *getSymCompatForHandler(void *handler,const char *symbol);
+    static void *getSymCompat(const char *filepath,const char *symbol);
 };
 
 void hook_libc_function(void *handle, const char *symbol, void *new_func, void **old_func) ;

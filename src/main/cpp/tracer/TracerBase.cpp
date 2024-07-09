@@ -43,12 +43,12 @@ void TracerBase::write_inline(const char *msg, Dl_info info, bool isApart) {
         buff.append("[");
         buff.append(match_so_name);
         buff.append("]");
-        const char *sname = info.dli_sname;
-        if(my_strlen(sname)>0){
-            buff.append("{");
-            buff.append(sname);
-            buff.append("}");
-        }
+//        const char *sname = info.dli_sname;
+//        if(my_strlen(sname)>0){
+//            buff.append("{");
+//            buff.append(sname);
+//            buff.append("}");
+//        }
     }
     if (!isApart) {
         if ((size_t) info.dli_fbase > 0) {

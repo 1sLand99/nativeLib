@@ -45,7 +45,6 @@
 #include "xdl_linker.h"
 #include "xdl_lzma.h"
 #include "xdl_util.h"
-#include "ZhenxiLog.h"
 
 #ifndef __LP64__
 #define XDL_LIB_PATH "/system/lib"
@@ -69,7 +68,7 @@ typedef struct xdl {
   ElfW(Half) dlpi_phnum;
 
   struct xdl *next;     // to next xdl obj for cache in xdl_addr()
-  void *linker_handle;  // hold handle returned by xdl_linker_load()
+  void *linker_handle;  // hold handle returned by xdl_linker_force_dlopen()
 
   //
   // (1) for searching symbols from .dynsym
@@ -209,7 +208,6 @@ static void *xdl_read_memory_to_heap_by_section(void *mem, size_t mem_sz, ElfW(S
   return xdl_read_memory_to_heap(mem, mem_sz, (size_t)shdr->sh_offset, shdr->sh_size);
 }
 
-
 static void *xdl_get_memory(void *mem, size_t mem_sz, size_t data_offset, size_t data_len) {
   if (0 == data_len) return NULL;
   if (data_offset >= mem_sz) return NULL;
@@ -236,10 +234,10 @@ static int xdl_symtab_load_from_debugdata(xdl_t *self, int file_fd, size_t file_
   // get unzipped .gnu_debugdata
   size_t debugdata_sz;
   if (0 != xdl_lzma_decompress(debugdata_zip, shdr_debugdata->sh_size, (uint8_t **)&debugdata, &debugdata_sz)){
-        free(debugdata_zip);
-        if (NULL != debugdata) free(debugdata);
-        if (NULL != shdrs) free(shdrs);
-        return r;
+      free(debugdata_zip);
+      if (NULL != debugdata) free(debugdata);
+      if (NULL != shdrs) free(shdrs);
+      return r;
   }
 
   // get ELF header
@@ -365,10 +363,10 @@ static int xdl_symtab_load(xdl_t *self) {
   if (SHN_UNDEF == ehdr->e_shstrndx || ehdr->e_shstrndx >= ehdr->e_shnum) goto end;
   shstrtab = (char *)xdl_read_file_to_heap_by_section(file_fd, file_sz, shdrs + ehdr->e_shstrndx);
   if (NULL == shstrtab) {
-    close(file_fd);
-    if (NULL != shdrs) free(shdrs);
-    if (NULL != shstrtab) free(shstrtab);
-    return r;
+      close(file_fd);
+      if (NULL != shdrs) free(shdrs);
+      if (NULL != shstrtab) free(shstrtab);
+      return r;
   }
 
   // find .symtab & .strtab
@@ -414,7 +412,7 @@ end:
 }
 
 static xdl_t *xdl_find_from_auxv(unsigned long type, const char *pathname) {
-  if (NULL == getauxval) return NULL;
+  if (NULL == getauxval) return NULL;  // API level < 18
 
   uintptr_t val = (uintptr_t)getauxval(type);
   if (0 == val) return NULL;
@@ -483,7 +481,7 @@ static int xdl_find_iterate_cb(struct dl_phdr_info *info, size_t size, void *arg
 
   // found the target ELF
   if (NULL == ((*self) = (xdl_t *)calloc(1, sizeof(xdl_t)))) return 1;  // return failed
-  if (NULL == ((*self)->pathname = strdup(info->dlpi_name))) {
+  if (NULL == ((*self)->pathname = strdup((const char *)info->dlpi_name))) {
     free(*self);
     *self = NULL;
     return 1;  // return failed
@@ -528,7 +526,7 @@ static xdl_t *xdl_find(const char *filename) {
 
 static void *xdl_open_always_force(const char *filename) {
   // always force dlopen()
-  void *linker_handle = xdl_linker_load(filename);
+  void *linker_handle = xdl_linker_force_dlopen(filename);
   if (NULL == linker_handle) return NULL;
 
   // find
@@ -547,7 +545,7 @@ static void *xdl_open_try_force(const char *filename) {
   if (NULL != self) return (void *)self;
 
   // try force dlopen()
-  void *linker_handle = xdl_linker_load(filename);
+  void *linker_handle = xdl_linker_force_dlopen(filename);
   if (NULL == linker_handle) return NULL;
 
   // find again
@@ -682,6 +680,48 @@ void *xdl_sym(void *handle, const char *symbol, size_t *symbol_size) {
   return (void *)(self->load_bias + sym->st_value);
 }
 
+// clang-format off
+/*
+ * For internal symbols in .symtab, LLVM may add some suffixes (for example for thinLTO).
+ * The format of the suffix is: ".xxxx.[hash]". LLVM may add multiple suffixes at once.
+ * The symbol name after removing these all suffixes is called canonical name.
+ *
+ * Because the hash part in the suffix may change when recompiled, so here we only match
+ * the canonical name.
+ *
+ * IN ADDITION: According to C/C++ syntax, it is illegal for a function name to contain
+ * dot character('.'), either in the middle or at the end.
+ *
+ * samples:
+ *
+ * symbol name in .symtab          lookup                       is match
+ * ----------------------          ----------------             --------
+ * abcd                            abc                          N
+ * abcd                            abcde                        N
+ * abcd                            abcd                         Y
+ * abcd.llvm.10190306339727611508  abc                          N
+ * abcd.llvm.10190306339727611508  abcd                         Y
+ * abcd.llvm.10190306339727611508  abcd.                        N
+ * abcd.llvm.10190306339727611508  abcd.llvm                    Y
+ * abcd.llvm.10190306339727611508  abcd.llvm.                   N
+ * abcd.__uniq.513291356003753     abcd.__uniq.51329            N
+ * abcd.__uniq.513291356003753     abcd.__uniq.513291356003753  Y
+ */
+// clang-format on
+static inline bool xdl_dsym_is_match(const char *str, const char *sym, size_t sym_len) {
+  size_t str_len = strlen(str);
+  if (0 == str_len) return false;
+
+  if (str_len < sym_len) {
+    return false;
+  } else {
+    bool sym_len_match = (0 == memcmp(str, sym, sym_len));
+    if (str_len == sym_len)
+      return sym_len_match;
+    else // str_len > sym_len
+      return sym_len_match && (str[sym_len] == '.');
+  }
+}
 
 void *xdl_dsym(void *handle, const char *symbol, size_t *symbol_size) {
   if (NULL == handle || NULL == symbol) return NULL;
@@ -697,11 +737,13 @@ void *xdl_dsym(void *handle, const char *symbol, size_t *symbol_size) {
 
   // find symbol
   if (NULL == self->symtab) return NULL;
+  size_t symbol_len = strlen(symbol);
   for (size_t i = 0; i < self->symtab_cnt; i++) {
     ElfW(Sym) *sym = self->symtab + i;
 
     if (!XDL_SYMTAB_IS_EXPORT_SYM(sym->st_shndx)) continue;
-    if (0 != strncmp(self->strtab + sym->st_name, symbol, self->strtab_sz - sym->st_name)) continue;
+    // if (0 != strncmp(self->strtab + sym->st_name, symbol, self->strtab_sz - sym->st_name)) continue;
+    if (!xdl_dsym_is_match(self->strtab + sym->st_name, symbol, symbol_len)) continue;
 
     if (NULL != symbol_size) *symbol_size = sym->st_size;
     return (void *)(self->load_bias + sym->st_value);
@@ -710,30 +752,6 @@ void *xdl_dsym(void *handle, const char *symbol, size_t *symbol_size) {
   return NULL;
 }
 
-
-
-void *getSymCompatForHandler(void *handler,const char *symbol){
-    void *sym = xdl_sym(handler, symbol, NULL);
-    if(sym == nullptr){
-        sym = xdl_dsym(handler, symbol, NULL);
-    }
-    if(sym == nullptr){
-        LOGW("getSymCompat get sym == null %s",symbol)
-    }
-    return sym;
-}
-
-void *getSymCompat(const char *filepath,const char *symbol){
-    void *handler = xdl_open(filepath, XDL_DEFAULT);
-    if(handler == nullptr){
-        //如果做了文件隐藏可能拿不到libart.so
-        LOGE("getSymCompat get handler == null %s",filepath)
-        return nullptr;
-    }
-    void *sym = getSymCompatForHandler(handler, symbol);
-    xdl_close(handler);
-    return sym;
-}
 static bool xdl_elf_is_match(uintptr_t load_bias, const ElfW(Phdr) *dlpi_phdr, ElfW(Half) dlpi_phnum,
                              uintptr_t addr) {
   if (addr < load_bias) return false;
@@ -756,10 +774,12 @@ static int xdl_open_by_addr_iterate_cb(struct dl_phdr_info *info, size_t size, v
   xdl_t **self = (xdl_t **)*pkg++;
   uintptr_t addr = *pkg;
 
+  if (0 == info->dlpi_addr || NULL == info->dlpi_name) return 0; // continue
+
   if (xdl_elf_is_match(info->dlpi_addr, info->dlpi_phdr, info->dlpi_phnum, addr)) {
     // found the target ELF
     if (NULL == ((*self) = (xdl_t *)calloc(1, sizeof(xdl_t)))) return 1;  // failed
-    if (NULL == ((*self)->pathname = strdup(info->dlpi_name))) {
+    if (NULL == ((*self)->pathname = strdup((const char *)info->dlpi_name))) {
       free(*self);
       *self = NULL;
       return 1;  // failed
@@ -772,7 +792,7 @@ static int xdl_open_by_addr_iterate_cb(struct dl_phdr_info *info, size_t size, v
     return 1;  // OK
   }
 
-  return 0;  // mismatch
+  return 0;  // continue
 }
 
 static void *xdl_open_by_addr(void *addr) {
@@ -922,81 +942,4 @@ int xdl_info(void *handle, int request, void *info) {
   dlinfo->dlpi_phdr = self->dlpi_phdr;
   dlinfo->dlpi_phnum = (size_t)self->dlpi_phnum;
   return 0;
-}
-void xdl_sym_foreach_in_symtab(void *handle, SymForeachCallBack* callback) {
-  if (NULL == handle ) return ;
-
-  xdl_t *self = (xdl_t *)handle;
-
-  // load .symtab only once
-  if (!self->symtab_try_load) {
-    self->symtab_try_load = true;
-    if (0 != xdl_symtab_load(self)) return ;
-  }
-
-  // find symbol
-  if (NULL == self->symtab) return ;
-
-  LOGE("xdl_sym_foreach_in_symtab symtab_cnt size %zu ",self->symtab_cnt)
-  for (size_t i = 0; i < self->symtab_cnt; ++i) {
-    ElfW(Sym) *sym = self->symtab + i;
-    if (!XDL_SYMTAB_IS_EXPORT_SYM(sym->st_shndx)) {
-      SymInfo info;
-      info.addr = (void *)(self->load_bias + sym->st_value);
-      info.sym = self->strtab + sym->st_name;
-      info.symLen = sym->st_size;
-      callback->findSym(&info);
-    }
-  }
-}
-// 遍历动态符号表.dynsym
-void xdl_sym_foreach_in_dynsym(void *handle, SymForeachCallBack* callback) {
-  if (NULL == handle) return;
-
-  xdl_t *self = (xdl_t *)handle;
-
-  if (!self->dynsym_try_load) {
-    self->dynsym_try_load = true;
-    if (0 != xdl_dynsym_load(self)) return;
-  }
-
-  if (NULL == self->dynsym) return;
-
-  // 计算符号表中符号的数量
-  uint32_t sym_cnt = 0;
-  if (self->gnu_hash.buckets_cnt > 0) {
-    for (uint32_t i = 0; i < self->gnu_hash.buckets_cnt; ++i) {
-      uint32_t idx = self->gnu_hash.buckets[i];
-      if (idx < self->gnu_hash.symoffset) continue;
-      while (1) {
-        uint32_t sym_hash = self->gnu_hash.chains[idx - self->gnu_hash.symoffset];
-        ++sym_cnt;
-        if (sym_hash & (uint32_t)1) break;
-        ++idx;
-      }
-    }
-  } else if (self->sysv_hash.buckets_cnt > 0) {
-    for (uint32_t i = 0; i < self->sysv_hash.buckets_cnt; ++i) {
-      for (uint32_t idx = self->sysv_hash.buckets[i]; 0 != idx; idx = self->sysv_hash.chains[idx]) {
-        ++sym_cnt;
-      }
-    }
-  }
-
-  // 遍历符号
-  for (uint32_t i = 0; i < sym_cnt; ++i) {
-    ElfW(Sym) *sym = self->dynsym + i;
-    if (XDL_DYNSYM_IS_EXPORT_SYM(sym->st_shndx)) {
-      SymInfo info;
-      info.addr = (void *)(self->load_bias + sym->st_value);
-      info.sym = (char*)self->dynstr + sym->st_name;
-      info.symLen = sym->st_size;
-      callback->findSym(&info);
-    }
-  }
-}
-
-void xdl_sym_foreach(void *handle,SymForeachCallBack* callback){
-  //xdl_sym_foreach_in_dynsym(handle,callback);
-  xdl_sym_foreach_in_symtab(handle, callback);
 }

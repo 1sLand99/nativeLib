@@ -38,11 +38,11 @@ jmethodID Jnitrace::auxiliary_clazz_method_id_toString = nullptr;
   //if(orig_##func == nullptr){LOG(INFO) <<"jnitrace hook error ,org sym == null "<<#func;}  \
   //LOG(INFO) << #func<<"("#__VA_ARGS__")" ;\
 
-#define GET_JOBJECT_INFO(env, obj, methodname) \
-            Jnitrace::getJObjectInfo(env,obj,methodname);\
+#define GET_JOBJECT_INFO(env, obj, methodname, info) \
+            Jnitrace::getJObjectInfo(env,obj,methodname,info);\
 
 
-#define GET_METHOD_INFO_ARGS(env, obj, methodid, args, isStatic) Jnitrace::getArgsInfo(env,obj,methodid,args,isStatic);
+#define GET_METHOD_INFO_ARGS(env, obj, methodid, args, isStatic, info) Jnitrace::getArgsInfo(env,obj,methodid,args,isStatic,info);
 
 //jobject CallObjectMethod(JNIEnv*, jobject, jmethodID, va_list args);
 JNI_HOOK_DEF(jobject, CallObjectMethodV, JNIEnv *env, jobject obj, jmethodID jmethodId,
@@ -50,9 +50,10 @@ JNI_HOOK_DEF(jobject, CallObjectMethodV, JNIEnv *env, jobject obj, jmethodID jme
     DL_INFO
     IS_MATCH
         jobject ret = orig_CallObjectMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallObjectMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false)
-        Jnitrace::getJObjectInfoInternal(env, ret, "result object :", true, nullptr);
+        GET_JOBJECT_INFO(env, obj, "CallObjectMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false, info)
+
+        Jnitrace::getJObjectInfoInternal(env, ret, "result object :", true, nullptr, info);
         return ret;
     }
     return orig_CallObjectMethodV(env, obj, jmethodId, args);
@@ -63,9 +64,8 @@ JNI_HOOK_DEF(void, CallVoidMethodV, JNIEnv *env, jobject obj, jmethodID jmethodI
              va_list args)
     DL_INFO
     IS_MATCH
-        GET_JOBJECT_INFO(env, obj, "CallVoidMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false)
-
+        GET_JOBJECT_INFO(env, obj, "CallVoidMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false, info)
     }
     return orig_CallVoidMethodV(env, obj, jmethodId, args);
 }
@@ -76,8 +76,9 @@ JNI_HOOK_DEF(jboolean, CallBooleanMethodV, JNIEnv *env, jobject obj, jmethodID j
     DL_INFO
     IS_MATCH
         jboolean ret = orig_CallBooleanMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallBooleanMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false)
+        GET_JOBJECT_INFO(env, obj, "CallBooleanMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false, info)
+
         WRITE(string("invoke method result Boolean : ").append(
                 (ret == JNI_TRUE ? "true" : "false")).append("\n"));
         return ret;
@@ -91,8 +92,9 @@ JNI_HOOK_DEF(jbyte, CallByteMethodV, JNIEnv *env, jobject obj, jmethodID jmethod
     DL_INFO
     IS_MATCH
         jbyte ret = orig_CallByteMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallByteMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false)
+        GET_JOBJECT_INFO(env, obj, "CallByteMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false, info)
+
         WRITE(string("result Byte : ").append(to_string(ret)).append("\n"));
         return ret;
     }
@@ -106,8 +108,9 @@ JNI_HOOK_DEF(jchar, CallCharMethodV, JNIEnv *env, jobject obj, jmethodID jmethod
     DL_INFO
     IS_MATCH
         jchar ret = orig_CallCharMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallCharMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false)
+        GET_JOBJECT_INFO(env, obj, "CallCharMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false, info)
+
         WRITE(string("result Char : ").append(to_string(ret)).append("\n"));
         return ret;
     }
@@ -120,8 +123,9 @@ JNI_HOOK_DEF(jshort, CallShortMethodV, JNIEnv *env, jobject obj, jmethodID jmeth
     DL_INFO
     IS_MATCH
         jshort ret = orig_CallShortMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallShortMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false)
+        GET_JOBJECT_INFO(env, obj, "CallShortMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false, info)
+
         WRITE(string("result Short : ").append(to_string(ret)).append("\n"));
         return ret;
     }
@@ -134,8 +138,9 @@ JNI_HOOK_DEF(jint, CallIntMethodV, JNIEnv *env, jobject obj, jmethodID jmethodId
     DL_INFO
     IS_MATCH
         jint ret = orig_CallIntMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallIntMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false)
+        GET_JOBJECT_INFO(env, obj, "CallIntMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false, info)
+
         WRITE(string("result Int : ").append(to_string(ret)).append("\n"));
         return ret;
     }
@@ -149,8 +154,9 @@ JNI_HOOK_DEF(jlong, CallLongMethodV, JNIEnv *env, jobject obj, jmethodID jmethod
     DL_INFO
     IS_MATCH
         jlong ret = orig_CallLongMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallLongMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false)
+        GET_JOBJECT_INFO(env, obj, "CallLongMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false, info)
+
         WRITE(string("result Long : ").append(to_string(ret)).append("\n"));
         return ret;
     }
@@ -163,8 +169,9 @@ JNI_HOOK_DEF(jfloat, CallFloatMethodV, JNIEnv *env, jobject obj, jmethodID jmeth
     DL_INFO
     IS_MATCH
         jfloat ret = orig_CallFloatMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallFloatMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false)
+        GET_JOBJECT_INFO(env, obj, "CallFloatMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false, info)
+
         WRITE(string("result Float : ").append(to_string(ret)).append("\n"));
         return ret;
     }
@@ -177,8 +184,9 @@ JNI_HOOK_DEF(jdouble, CallDoubleMethodV, JNIEnv *env, jobject obj, jmethodID jme
     DL_INFO
     IS_MATCH
         jdouble ret = orig_CallDoubleMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallDoubleMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false)
+        GET_JOBJECT_INFO(env, obj, "CallDoubleMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false, info)
+
         WRITE(string("result Double : ").append(to_string(ret)).append("\n"));
         return ret;
     }
@@ -194,9 +202,9 @@ JNI_HOOK_DEF(jobject, CallStaticObjectMethodV, JNIEnv *env, jclass obj, jmethodI
     DL_INFO
     IS_MATCH
         jobject ret = orig_CallStaticObjectMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallStaticObjectMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true)
-        Jnitrace::getJObjectInfoInternal(env, ret, "result object :", true, nullptr);
+        GET_JOBJECT_INFO(env, obj, "CallStaticObjectMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true, info)
+        Jnitrace::getJObjectInfoInternal(env, ret, "result object :", true, nullptr, info);
         return ret;
     }
     return orig_CallStaticObjectMethodV(env, obj, jmethodId, args);
@@ -207,8 +215,8 @@ JNI_HOOK_DEF(void, CallStaticVoidMethodV, JNIEnv *env, jclass obj, jmethodID jme
              va_list args)
     DL_INFO
     IS_MATCH
-        GET_JOBJECT_INFO(env, obj, "CallStaticVoidMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true)
+        GET_JOBJECT_INFO(env, obj, "CallStaticVoidMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true, info)
 
     }
     return orig_CallStaticVoidMethodV(env, obj, jmethodId, args);
@@ -222,8 +230,8 @@ JNI_HOOK_DEF(jboolean, CallStaticBooleanMethodV, JNIEnv *env, jclass obj,
     IS_MATCH
 
         jboolean ret = orig_CallStaticBooleanMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallStaticBooleanMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true)
+        GET_JOBJECT_INFO(env, obj, "CallStaticBooleanMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true, info)
         WRITE(string("result Boolean : ").append(
                 (ret == JNI_TRUE ? "true" : "false")).append(
                 "\n"));
@@ -239,8 +247,8 @@ JNI_HOOK_DEF(jbyte, CallStaticByteMethodV, JNIEnv *env, jclass obj, jmethodID jm
     DL_INFO
     IS_MATCH
         jbyte ret = orig_CallStaticByteMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallStaticByteMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true)
+        GET_JOBJECT_INFO(env, obj, "CallStaticByteMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true, info)
         WRITE(string("result Byte : ").append(to_string(ret)).append("\n"));
         return ret;
     }
@@ -255,8 +263,8 @@ JNI_HOOK_DEF(jchar, CallStaticCharMethodV, JNIEnv *env, jclass obj, jmethodID jm
     DL_INFO
     IS_MATCH
         jchar ret = orig_CallStaticCharMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallStaticCharMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true)
+        GET_JOBJECT_INFO(env, obj, "CallStaticCharMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true, info)
         WRITE(string("result Char : ").append(to_string(ret)).append("\n"));
         return ret;
 
@@ -270,8 +278,8 @@ JNI_HOOK_DEF(jshort, CallStaticShortMethodV, JNIEnv *env, jclass obj, jmethodID 
     DL_INFO
     IS_MATCH
         jshort ret = orig_CallStaticShortMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallStaticShortMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true)
+        GET_JOBJECT_INFO(env, obj, "CallStaticShortMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true, info)
         WRITE(string("result Short : ").append(to_string(ret)).append("\n"));
         return ret;
     }
@@ -284,8 +292,8 @@ JNI_HOOK_DEF(jint, CallStaticIntMethodV, JNIEnv *env, jclass obj, jmethodID jmet
     DL_INFO
     IS_MATCH
         jint ret = orig_CallStaticIntMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallStaticIntMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true)
+        GET_JOBJECT_INFO(env, obj, "CallStaticIntMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true, info)
         WRITE(string("result Int : ").append(to_string(ret)).append("\n"));
         return ret;
     }
@@ -299,8 +307,8 @@ JNI_HOOK_DEF(jlong, CallStaticLongMethodV, JNIEnv *env, jclass obj, jmethodID jm
     DL_INFO
     IS_MATCH
         jlong ret = orig_CallStaticLongMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallStaticLongMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true)
+        GET_JOBJECT_INFO(env, obj, "CallStaticLongMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true, info)
         WRITE(string("result Long : ").append(to_string(ret)).append("\n"));
         return ret;
     }
@@ -313,8 +321,8 @@ JNI_HOOK_DEF(jfloat, CallStaticFloatMethodV, JNIEnv *env, jclass obj, jmethodID 
     DL_INFO
     IS_MATCH
         jfloat ret = orig_CallStaticFloatMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallStaticFloatMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true)
+        GET_JOBJECT_INFO(env, obj, "CallStaticFloatMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true, info)
         WRITE(string("result Float : ").append(to_string(ret)).append("\n"));
         return ret;
     }
@@ -328,8 +336,8 @@ JNI_HOOK_DEF(jdouble, CallStaticDoubleMethodV, JNIEnv *env, jclass obj, jmethodI
     DL_INFO
     IS_MATCH
         jdouble ret = orig_CallStaticDoubleMethodV(env, obj, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "CallStaticDoubleMethodV")
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true)
+        GET_JOBJECT_INFO(env, obj, "CallStaticDoubleMethodV", info)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, true, info)
         WRITE(string("result Double : ").append(to_string(ret)).append("\n"));
         return ret;
     }
@@ -337,7 +345,7 @@ JNI_HOOK_DEF(jdouble, CallStaticDoubleMethodV, JNIEnv *env, jclass obj, jmethodI
 }
 
 
-void Jnitrace::getJObjectInfo(JNIEnv *env, jobject obj, const string &methodname) {
+void Jnitrace::getJObjectInfo(JNIEnv *env, jobject obj, const string &methodname, Dl_info info) {
     if (obj == nullptr) {
         return;
     }
@@ -348,7 +356,7 @@ void Jnitrace::getJObjectInfo(JNIEnv *env, jobject obj, const string &methodname
     const string temptag =
             "<<<<<------------------" + methodname + " --------------------->>>>>\n";
     WRITE(temptag, true);
-    Jnitrace::getJObjectInfoInternal(env, obj, "invoke this object", true, nullptr);
+    Jnitrace::getJObjectInfoInternal(env, obj, "invoke this object", true, nullptr, info);
 }
 
 /**
@@ -388,62 +396,54 @@ void Jnitrace::getJObjectInfoInternal(JNIEnv *env,
         jmethodID id = env->GetStaticMethodID(clazz, "toString", "(Z)Ljava/lang/String;");
         auto jStr = (jstring) env->CallStaticObjectMethod(clazz, id, obj);
         ret = env->GetStringUTFChars(jStr, nullptr);
-    }
-    else if (my_strcmp(classInfo, "byte") == 0 ||
+    } else if (my_strcmp(classInfo, "byte") == 0 ||
                my_strcmp(classInfo, "java.lang.Byte") == 0) {
         jclass clazz = env->FindClass("java/lang/Byte");
         jmethodID id = env->GetStaticMethodID(clazz, "toString", "(B)Ljava/lang/String;");
         auto jStr = (jstring) env->CallStaticObjectMethod(clazz, id, obj);
         ret = env->GetStringUTFChars(jStr, nullptr);
-    }
-    else if (my_strcmp(classInfo, "char") == 0 ||
+    } else if (my_strcmp(classInfo, "char") == 0 ||
                my_strcmp(classInfo, "java.lang.Character") == 0) {
         jclass clazz = env->FindClass("java/lang/Character");
         jmethodID id = env->GetStaticMethodID(clazz, "toString", "(C)Ljava/lang/String;");
         auto jStr = (jstring) env->CallStaticObjectMethod(clazz, id, obj);
         ret = env->GetStringUTFChars(jStr, nullptr);
 
-    }
-    else if (my_strcmp(classInfo, "short") == 0 ||
+    } else if (my_strcmp(classInfo, "short") == 0 ||
                my_strcmp(classInfo, "java.lang.Short") == 0) {
         jclass clazz = env->FindClass("java/lang/Short");
         jmethodID id = env->GetStaticMethodID(clazz, "toString", "(S)Ljava/lang/String;");
         auto jStr = (jstring) env->CallStaticObjectMethod(clazz, id, obj);
         ret = env->GetStringUTFChars(jStr, nullptr);
 
-    }
-    else if (my_strcmp(classInfo, "int") == 0 ||
+    } else if (my_strcmp(classInfo, "int") == 0 ||
                my_strcmp(classInfo, "java.lang.Integer") == 0) {
         jclass clazz = env->FindClass("java/lang/Integer");
         jmethodID id = env->GetStaticMethodID(clazz, "toString", "(I)Ljava/lang/String;");
         auto jStr = (jstring) env->CallStaticObjectMethod(clazz, id, obj);
         ret = env->GetStringUTFChars(jStr, nullptr);
 
-    }
-    else if (my_strcmp(classInfo, "float") == 0 ||
+    } else if (my_strcmp(classInfo, "float") == 0 ||
                my_strcmp(classInfo, "java.lang.Float") == 0) {
         jclass clazz = env->FindClass("java/lang/Float");
         jmethodID id = env->GetStaticMethodID(clazz, "toString", "(F)Ljava/lang/String;");
         auto jStr = (jstring) env->CallStaticObjectMethod(clazz, id, obj);
         ret = env->GetStringUTFChars(jStr, nullptr);
 
-    }
-    else if (my_strcmp(classInfo, "double") == 0 ||
+    } else if (my_strcmp(classInfo, "double") == 0 ||
                my_strcmp(classInfo, "java.lang.Double") == 0) {
         jclass clazz = env->FindClass("java/lang/Double");
         jmethodID id = env->GetStaticMethodID(clazz, "toString", "(D)Ljava/lang/String;");
         auto jStr = (jstring) env->CallStaticObjectMethod(clazz, id, obj);
         ret = env->GetStringUTFChars(jStr, nullptr);
 
-    }
-    else if (my_strcmp(classInfo, "long") == 0 ||
+    } else if (my_strcmp(classInfo, "long") == 0 ||
                my_strcmp(classInfo, "java.lang.Long") == 0) {
         jclass clazz = env->FindClass("java/lang/Long");
         jmethodID id = env->GetStaticMethodID(clazz, "toString", "(J)Ljava/lang/String;");
         auto jStr = (jstring) env->CallStaticObjectMethod(clazz, id, obj);
         ret = env->GetStringUTFChars(jStr, nullptr);
-    }
-    else if (my_strstr(classInfo, "[")) {
+    } else if (my_strstr(classInfo, "[")) {
         //数组类型需要特殊处理,非数组直接打印
         auto arg = (jobjectArray) obj;
         //数组类型参数
@@ -496,33 +496,32 @@ void Jnitrace::getJObjectInfoInternal(JNIEnv *env,
             //上面的逻辑主要是为了处理argJstr的赋值
             ret = env->GetStringUTFChars(argJstr, nullptr);
         }
-    }
-    else {
+    } else {
         //其他任何类型直接toString
-        ret = getJObjectToString(env, obj,classInfo).c_str();
+        ret = getJObjectToString(env, obj, classInfo).c_str();
     }
     if (env->ExceptionCheck()) {
         env->ExceptionClear();
     }
     if (ret == nullptr) {
-        WRITE("jnitrace get obj info error " + string(classInfo),info);
+        WRITE("jnitrace get obj info error " + string(classInfo), info);
         return;
     }
     if (my_strlen(ret) > 0) {
         if (isPrintClassinfo) {
             string basicString = message.append("  [").append(classInfo).append("]  ").append(
                     ret).append("\n");
-            WRITE(basicString,info);
+            WRITE(basicString, info);
         } else {
             string basicString = message.append("  ").append(ret).append("\n");
-            WRITE(basicString,info);
+            WRITE(basicString, info);
         }
     }
 }
 
 
 void Jnitrace::getArgsInfo(JNIEnv *env, jobject obj, jmethodID jmethodId,
-                           va_list args, bool isStatic
+                           va_list args, bool isStatic, Dl_info info
 ) {
 
     if (obj == nullptr) {
@@ -542,7 +541,7 @@ void Jnitrace::getArgsInfo(JNIEnv *env, jobject obj, jmethodID jmethodId,
     jobject invokeMethod = env->ToReflectedMethod(pJclass, jmethodId, isStatic);
 
     //打印被调用方法信息,只需要调用他的toString
-    getJObjectInfoInternal(env, invokeMethod, "invoke method", false, nullptr);
+    getJObjectInfoInternal(env, invokeMethod, "invoke method", false, nullptr, info);
 
 
     jclass objclass = env->GetObjectClass(invokeMethod);
@@ -573,7 +572,7 @@ void Jnitrace::getArgsInfo(JNIEnv *env, jobject obj, jmethodID jmethodId,
         //具体每个类型的class
         auto classInfo = getJObjectClassInfo(env, argobj);
         jobject arg = va_arg(args, jobject);
-        getJObjectInfoInternal(env, arg, argsInfo, true, classInfo.c_str());
+        getJObjectInfoInternal(env, arg, argsInfo, true, classInfo.c_str(), info);
     }
     //end
     va_end(args);
@@ -619,31 +618,31 @@ string Jnitrace::getJObjectClassInfo(JNIEnv *env, jobject obj) {
 /*
  * get obj to string
  */
-string Jnitrace::getJObjectToString(JNIEnv *env, jobject obj,const char * classInfo) {
-    if(obj == nullptr) {
+string Jnitrace::getJObjectToString(JNIEnv *env, jobject obj, const char *classInfo) {
+    if (obj == nullptr) {
         return {};
     }
     jstring str;
-    if(auxiliary_clazz!= nullptr) {
-        if(auxiliary_clazz_method_id_toString == nullptr) {
+    if (auxiliary_clazz != nullptr) {
+        if (auxiliary_clazz_method_id_toString == nullptr) {
             auxiliary_clazz_method_id_toString = env->GetStaticMethodID(auxiliary_clazz,
-                                                                       "obj2str",
-                                                                       "(Ljava/lang/Object;)Ljava/lang/String;");
+                                                                        "obj2str",
+                                                                        "(Ljava/lang/Object;)Ljava/lang/String;");
         }
         str = (jstring) env->CallStaticObjectMethod(auxiliary_clazz,
-                                                    auxiliary_clazz_method_id_toString,obj
-                                              );
-    }else {
+                                                    auxiliary_clazz_method_id_toString, obj
+        );
+    } else {
         if (object_method_id_toString == nullptr) {
             object_method_id_toString =
                     env->GetMethodID(env->FindClass("java/lang/Object"),
                                      "toString",
                                      "()Ljava/lang/String;");
         }
-        if(classInfo!= nullptr) {
-            if (my_strcmp(classInfo, "android.graphics.Shader$TileMode") == 0||
+        if (classInfo != nullptr) {
+            if (my_strcmp(classInfo, "android.graphics.Shader$TileMode") == 0 ||
                 my_strcmp(classInfo, "android.graphics.Paint") == 0
-                ) {
+                    ) {
                 return "";
             }
         }
@@ -660,9 +659,8 @@ string Jnitrace::getJObjectToString(JNIEnv *env, jobject obj,const char * classI
 JNITRACE_HOOK_DEF(jstring, NewStringUTF, JNIEnv *env, const char *bytes) {
     DL_INFO
     IS_MATCH
-
-        WRITE(string(string("<") + address + ">NewStringUTF : ").append(
-                bytes == nullptr ? "" : bytes).append("\n"));
+        WRITE(string("NewStringUTF : ").append(
+                bytes == nullptr ? "" : bytes).append("\n"), info);
         return orig_NewStringUTF(env, bytes);
 
     }
@@ -682,7 +680,7 @@ JNITRACE_HOOK_DEF(const char*, GetStringUTFChars, JNIEnv *env, jstring argstring
             return chars;
         }
 
-        WRITE(string("<") + address + string(">GetStringUTFChars : ").append(chars).append("\n"));
+        WRITE(string("GetStringUTFChars : ").append(chars).append("\n"));
         return chars;
 
     }
@@ -694,7 +692,7 @@ JNITRACE_HOOK_DEF(jclass, FindClass, JNIEnv *env, const char *name) {
     DL_INFO
     IS_MATCH
 
-        WRITE(string("<") + address + string(">find class : ").append(
+        WRITE(string("find class : ").append(
                 name == nullptr ? "" : name).append("\n"));
         return orig_FindClass(env, name);
 
@@ -711,9 +709,10 @@ JNITRACE_HOOK_DEF(jobject, NewObjectV, JNIEnv *env, jclass clazz, jmethodID jmet
     IS_MATCH
         //当method id 错误时候可能null
         jobject obj = orig_NewObjectV(env, clazz, jmethodId, args);
-        GET_JOBJECT_INFO(env, obj, "NewObjectV")
+        GET_JOBJECT_INFO(env, obj, "NewObjectV", info)
         //打印构造方法参数信息
-        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false)
+        GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false, info)
+
         return obj;
 
     }
@@ -727,13 +726,11 @@ JNITRACE_HOOK_DEF(void, SetByteArrayRegion, JNIEnv *env,
     DL_INFO
     IS_MATCH
         orig_SetByteArrayRegion(env, array, start, len, buf);
-
         Jnitrace::getJObjectInfoInternal(env, array,
-                                         string("<") + address + ">SetByteArrayRegion java array, start->" +
-                                         to_string(start) + " len -> " +
-                                         to_string(len), false,
-                                         nullptr);
-
+                                         string("SetByteArrayRegion java array, start->" +
+                                                to_string(start) + " len -> " +
+                                                to_string(len)), false,
+                                         nullptr, info);
     }
     orig_SetByteArrayRegion(env, array, start, len, buf);
 }
@@ -744,13 +741,11 @@ JNITRACE_HOOK_DEF(void, GetByteArrayRegion, JNIEnv *env,
     DL_INFO
     IS_MATCH
         orig_GetByteArrayRegion(env, array, start, len, buf);
-
         Jnitrace::getJObjectInfoInternal(env, array,
-                                         string("<") + address + ">GetByteArrayRegion java array, start->" +
-                                         to_string(start) + " len -> " +
-                                         to_string(len), false,
-                                         nullptr);
-
+                                         string("GetByteArrayRegion java array, start->" +
+                                                to_string(start) + " len -> " +
+                                                to_string(len)), false,
+                                         nullptr, info);
     }
     orig_GetByteArrayRegion(env, array, start, len, buf);
 }
@@ -762,10 +757,10 @@ JNITRACE_HOOK_DEF(void, GetStringRegion,
         orig_GetStringRegion(env, str, start, len, buf);
 
         Jnitrace::getJObjectInfoInternal(env, str,
-                                         string("<") + address + ">GetStringRegion java str, start->" +
-                                         to_string(start) + " len -> " +
-                                         to_string(len), false,
-                                         nullptr);
+                                         string("GetStringRegion java str, start->" +
+                                                to_string(start) + " len -> " +
+                                                to_string(len)), false,
+                                         nullptr, info);
 
     }
     orig_GetStringRegion(env, str, start, len, buf);
@@ -778,10 +773,10 @@ JNITRACE_HOOK_DEF(void, GetStringUTFRegion,
         orig_GetStringUTFRegion(env, str, start, len, buf);
 
         Jnitrace::getJObjectInfoInternal(env, str,
-                                         string("<") + address + ">GetStringUTFRegion java str, start->" +
+                                         "GetStringUTFRegion java str, start->" +
                                          to_string(start) + " len -> " +
                                          to_string(len), false,
-                                         nullptr);
+                                         nullptr, info);
 
     }
     orig_GetStringUTFRegion(env, str, start, len, buf);
@@ -796,9 +791,9 @@ JNITRACE_HOOK_DEF(jobject, ToReflectedMethod, JNIEnv *env, jclass clazz,
         jobject obj = orig_ToReflectedMethod(env, clazz, jmethodId, isStatic);
         if (obj != nullptr) {
 
-            Jnitrace::getJObjectInfoInternal(env, obj, string("<") + address + ">ToReflectedMethod result ",
+            Jnitrace::getJObjectInfoInternal(env, obj, "ToReflectedMethod result ",
                                              false,
-                                             nullptr);
+                                             nullptr, info);
         }
         return obj;
 
@@ -811,9 +806,9 @@ JNITRACE_HOOK_DEF(jobject, FromReflectedMethod, JNIEnv *env, jobject method) {
     DL_INFO
     IS_MATCH
 
-        Jnitrace::getJObjectInfoInternal(env, method, string("<") + address + ">FromReflectedMethod arg ",
+        Jnitrace::getJObjectInfoInternal(env, method, "FromReflectedMethod arg ",
                                          false,
-                                         nullptr);
+                                         nullptr, info);
         return orig_FromReflectedMethod(env, method);
 
     }
@@ -834,10 +829,10 @@ JNITRACE_HOOK_DEF(jfieldID, GetFieldID, JNIEnv *env, jclass clazz, const char *n
         //LOG(INFO) << "get field info  :  " << toString << "  " << name << "  " << sig;
         //os << "get field info  :  " << toString << "  " << name << "  " << sig << "\n";
 
-        WRITE(string(string("<") + address + ">get field info  : ").append(
+        WRITE(string("get field info  : ").append(
                         toString == nullptr ? "" : toString)
-                                .append(" name-> ").append(name == nullptr ? "" : name)
-                                .append(" sign -> ").append(sig == nullptr ? "" : sig).append(
+                      .append(" name-> ").append(name == nullptr ? "" : name)
+                      .append(" sign -> ").append(sig == nullptr ? "" : sig).append(
                         "\n"));
         return orig_GetFieldID(env, clazz, name, sig);
 
@@ -858,9 +853,9 @@ JNITRACE_HOOK_DEF(jfieldID, GetStaticFieldID, JNIEnv *env, jclass clazz, const c
         //LOG(INFO) << "get static field info  :  " << toString << "  " << name << "  " << sig;
         //os << "get static field info  :  " << toString << "  " << name << "  " << sig << "\n";
 
-        WRITE(string(string("<") + address + ">get static field info  : ").append(
+        WRITE(string("get static field info  : ").append(
                         toString == nullptr ? "" : toString)
-                                .append(" ").append(name).append(" ").append(sig).append("\n"));
+                      .append(" ").append(name).append(" ").append(sig).append("\n"));
         return orig_GetStaticFieldID(env, clazz, name, sig);
 
     }
@@ -878,9 +873,9 @@ JNITRACE_HOOK_DEF(jobject, GetObjectField, JNIEnv *env, [[maybe_unused]] jobject
         if (ret != nullptr) {
 
             Jnitrace::getJObjectInfoInternal(env, ret,
-                                             string("<") + address + ">GetObjectField result object :",
+                                             "GetObjectField result object :",
                                              true,
-                                             nullptr);
+                                             nullptr, info);
         }
         return ret;
     }
@@ -897,7 +892,7 @@ JNITRACE_HOOK_DEF(jboolean, GetBooleanField, JNIEnv *env, [[maybe_unused]] jobje
         //LOG(INFO) << "GetBooleanField result jboolean : " << (ret == JNI_TRUE?"true":"false");
         //os << "GetBooleanField result jboolean :  " << (ret == JNI_TRUE?"true":"false") << "\n";;
 
-        WRITE(string(string("<") + address + ">GetBooleanField result jboolean : ").append(
+        WRITE(string("GetBooleanField result jboolean : ").append(
                 (ret == JNI_TRUE ? "true" : "false")).append("\n"));
         return ret;
     }
@@ -913,7 +908,7 @@ JNITRACE_HOOK_DEF(jbyte, GetByteField, JNIEnv *env, [[maybe_unused]] jobject arg
         //LOG(INFO) << "GetByteField result jbyte : " << ret;
         //            os << "GetByteField result jbyte :  " << ret << "\n";;
 
-        WRITE(string(string("<") + address + ">GetByteField result jbyte : ").append(
+        WRITE(string("GetByteField result jbyte : ").append(
                 to_string(ret)).append(
                 "\n"));
         return ret;
@@ -930,7 +925,7 @@ JNITRACE_HOOK_DEF(jchar, GetCharField, JNIEnv *env, [[maybe_unused]] jobject arg
         //LOG(INFO) << "GetCharField result jbyte : " << ret;
         //os << "GetCharField result jbyte :  " << ret << "\n";;
 
-        WRITE(string(string("<") + address + ">GetCharField result jbyte : ").append(
+        WRITE(string("GetCharField result jbyte : ").append(
                 to_string(ret)).append(
                 "\n"));
         return ret;
@@ -947,7 +942,7 @@ JNITRACE_HOOK_DEF(jshort, GetShortField, JNIEnv *env, [[maybe_unused]] jobject a
         //LOG(INFO) << "GetShortField result jshort : " << ret;
         //os << "GetShortField result jshort :  " << ret << "\n";;
 
-        WRITE(string(string("<") + address + ">GetShortField result jshort : ").append(
+        WRITE(string("GetShortField result jshort : ").append(
                 to_string(ret)).append(
                 "\n"));
         return ret;
@@ -964,7 +959,7 @@ JNITRACE_HOOK_DEF(jint, GetIntField, JNIEnv *env, [[maybe_unused]] jobject argOb
         //LOG(INFO) << "GetIntField result jint : " << ret;
         //os << "GetIntField result jint :  " << ret << "\n";;
 
-        WRITE(string(string("<") + address + ">GetIntField result jint : ").append(
+        WRITE(string("GetIntField result jint : ").append(
                 to_string(ret)).append("\n"));
         return ret;
     }
@@ -980,7 +975,7 @@ JNITRACE_HOOK_DEF(jlong, GetLongField, JNIEnv *env, [[maybe_unused]] jobject arg
         //LOG(INFO) << "GetLongField result jlong : " << ret;
         //os << "GetLongField result jlong :  " << ret << "\n";;
 
-        WRITE(string(string("<") + address + ">GetLongField result jlong : ").append(
+        WRITE(string("GetLongField result jlong : ").append(
                 to_string(ret)).append(
                 "\n"));
         return ret;
@@ -997,7 +992,7 @@ JNITRACE_HOOK_DEF(jfloat, GetFloatField, JNIEnv *env, [[maybe_unused]] jobject a
         //LOG(INFO) << "GetFloatField result jfloat : " << ret;
         //os << "GetFloatField result jfloat :  " << ret << "\n";;
 
-        WRITE(string(string("<") + address + ">GetFloatField result jfloat : ").append(
+        WRITE(string("GetFloatField result jfloat : ").append(
                 to_string(ret)).append(
                 "\n"));
         return ret;
@@ -1013,8 +1008,7 @@ JNITRACE_HOOK_DEF(jdouble, GetDoubleField, JNIEnv *env, [[maybe_unused]] jobject
         jdouble ret = orig_GetDoubleField(env, argObj, jfieldId);
         //LOG(INFO) << "GetDoubleField result jdouble : " << ret;
         //os << "GetDoubleField result jdouble :  " << ret << "\n";;
-
-        WRITE(string(string("<") + address + ">GetDoubleField result jdouble : ").append(
+        WRITE(string("GetDoubleField result jdouble : ").append(
                 to_string(ret)).append(
                 "\n"));
         return ret;
@@ -1029,12 +1023,10 @@ JNITRACE_HOOK_DEF(jobject, GetStaticObjectField, JNIEnv *env, jclass clazz,
     IS_MATCH
         jobject ret = orig_GetStaticObjectField(env, clazz, jfieldId);
         if (ret != nullptr) {
-
             Jnitrace::getJObjectInfoInternal(env, ret,
-                                             string("<") + address +
-                                             ">GetStaticObjectField result object :",
+                                             "GetStaticObjectField result object :",
                                              true,
-                                             nullptr);
+                                             nullptr, info);
         }
         return ret;
     }
@@ -1050,7 +1042,7 @@ JNITRACE_HOOK_DEF(jboolean, GetStaticBooleanField, JNIEnv *env, jclass clazz,
         //LOG(INFO) << "GetStaticBooleanField result jboolean : " << (ret == JNI_TRUE?"true":"false");
         //os << "GetStaticBooleanField result jboolean :  " << (ret == JNI_TRUE?"true":"false") << "\n";;
 
-        WRITE(string(string("<") + address + ">GetStaticBooleanField result jboolean : ").append(
+        WRITE(string("GetStaticBooleanField result jboolean : ").append(
                 (ret == JNI_TRUE ? "true" : "false")).append("\n"));
         return ret;
     }
@@ -1065,7 +1057,7 @@ JNITRACE_HOOK_DEF(jbyte, GetStaticByteField, JNIEnv *env, jclass clazz,
         //LOG(INFO) << "GetStaticByteField result jbyte : " << ret;
         //            os << "GetStaticByteField result jbyte :  " << ret << "\n";;
 
-        WRITE(string(string("<") + address + ">GetStaticByteField result jbyte : ").append(
+        WRITE(string("GetStaticByteField result jbyte : ").append(
                 to_string(ret)).append(
                 "\n"));
         return ret;
@@ -1081,7 +1073,7 @@ JNITRACE_HOOK_DEF(jchar, GetStaticCharField, JNIEnv *env, jclass clazz,
         //LOG(INFO) << "GetStaticCharField result jchar : " << ret;
         //os << "GetStaticCharField result jchar :  " << ret << "\n";;
 
-        WRITE(string(string("<") + address + ">GetStaticCharField result jchar : ").append(
+        WRITE(string("GetStaticCharField result jchar : ").append(
                 to_string(ret)).append(
                 "\n"));
         return ret;
@@ -1097,7 +1089,7 @@ JNITRACE_HOOK_DEF(jshort, GetStaticShortField, JNIEnv *env, jclass clazz,
         //LOG(INFO) << "GetStaticShortField result jshort : " << ret;
         //os << "GetStaticShortField result jshort :  " << ret << "\n";;
 
-        WRITE(string(string("<") + address + ">GetStaticShortField result jshort : ").append(
+        WRITE(string("GetStaticShortField result jshort : ").append(
                 to_string(ret)).append(
                 "\n"));
         return ret;
@@ -1113,7 +1105,7 @@ JNITRACE_HOOK_DEF(jint, GetStaticIntField, JNIEnv *env, jclass clazz,
         //LOG(INFO) << "GetStaticIntField result jint : " << ret;
         //            os << "GetStaticIntField result jint :  " << ret << "\n";;
 
-        WRITE(string(string("<") + address + ">GetStaticIntField result jint :  ").append(
+        WRITE(string("GetStaticIntField result jint :  ").append(
                 to_string(ret)).append(
                 "\n"));
         return ret;
@@ -1129,7 +1121,7 @@ JNITRACE_HOOK_DEF(jlong, GetStaticLongField, JNIEnv *env, jclass clazz,
         //LOG(INFO) << "GetStaticLongField result jlong : " << ret;
         //os << "GetStaticLongField result jlong :  " << ret << "\n";;
 
-        WRITE(string(string("<") + address + ">GetStaticLongField result jlong :  ").append(
+        WRITE(string("GetStaticLongField result jlong :  ").append(
                 to_string(ret)).append(
                 "\n"));
         return ret;
@@ -1145,7 +1137,7 @@ JNITRACE_HOOK_DEF(jfloat, GetStaticFloatField, JNIEnv *env, jclass clazz,
         //LOG(INFO) << "GetStaticFloatField result jfloat : " << ret;
         //os << "GetStaticFloatField result jfloat :  " << ret << "\n";;
 
-        WRITE(string(string("<") + address + ">GetStaticFloatField result jfloat :  ").append(
+        WRITE(string("GetStaticFloatField result jfloat :  ").append(
                 to_string(ret)).append(
                 "\n"));
         return ret;
@@ -1161,7 +1153,7 @@ JNITRACE_HOOK_DEF(jdouble, GetStaticDoubleField, JNIEnv *env, jclass clazz,
         //LOG(INFO) << "GetStaticDoubleField result jdouble : " << ret;
         //os << "GetStaticDoubleField result jdouble :  " << ret << "\n";;
 
-        WRITE(string(string("<") + address + ">GetStaticDoubleField result jdouble :  ").append(
+        WRITE(string("GetStaticDoubleField result jdouble :  ").append(
                 to_string(ret)).append(
                 "\n"));
         return ret;
@@ -1170,7 +1162,7 @@ JNITRACE_HOOK_DEF(jdouble, GetStaticDoubleField, JNIEnv *env, jclass clazz,
 }
 //jclass DefineClass(const char *name, jobject loader, const jbyte* buf,jsize bufLen)
 JNITRACE_HOOK_DEF(jclass, DefineClass, JNIEnv *env, const char *name, jobject loader,
-                  const jbyte *buf, jsize bufLen) {
+                  [[maybe_unused]] const jbyte *buf, [[maybe_unused]] jsize bufLen) {
     DL_INFO
     IS_MATCH
         auto ret = orig_DefineClass(env, name, loader, buf, bufLen);
@@ -1178,7 +1170,7 @@ JNITRACE_HOOK_DEF(jclass, DefineClass, JNIEnv *env, const char *name, jobject lo
             //LOG(INFO) << "GetStaticDoubleField result jdouble : " << ret;
             //os << "GetStaticDoubleField result jdouble :  " << ret << "\n";;
 
-            WRITE(string(string("<") + address + ">DefineClass   ").append(name).append("\n"));
+            WRITE(string("DefineClass   ").append(name).append("\n"));
         }
         return ret;
     }
@@ -1260,10 +1252,10 @@ void init_jnitracer(JNIEnv *env) {
 
 
 void Jnitrace::init(JNIEnv *env,
-                             bool hookAll,
-                             const std::list<string> &forbid_list,
-                             const std::list<string> &filter_list,
-                             std::ofstream *os) {
+                    bool hookAll,
+                    const std::list<string> &forbid_list,
+                    const std::list<string> &filter_list,
+                    std::ofstream *os) {
     isHookAll = hookAll;
     LOGE("start jni trace is hook all %s", isHookAll ? "true" : "false")
     for (const std::string &str: forbid_list) {
@@ -1293,7 +1285,8 @@ void Jnitrace::stop() {
     isSave = false;
 }
 
-void Jnitrace::setAuxiliaryClazz(jclass clazz) {
+
+[[maybe_unused]] void Jnitrace::setAuxiliaryClazz(jclass clazz) {
     auxiliary_clazz = clazz;
 }
 

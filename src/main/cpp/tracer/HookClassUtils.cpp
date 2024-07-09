@@ -18,10 +18,10 @@ HOOK_DEF(void*, LoadClass, void *LinkerThis, void *self,
 
 
 void into_classLinker_loadClass(char *artPth) {
-    void *classLinker_loadClassSym = getSymCompat(artPth,
+    void *classLinker_loadClassSym = HookUtils::getSymCompat(artPth,
                                                   "_ZN3art11ClassLinker9LoadClassEPNS_6ThreadERKNS_7DexFileERKNS_3dex8ClassDefENS_6HandleINS_6mirror5ClassEEE");
     if (classLinker_loadClassSym == nullptr) {
-        classLinker_loadClassSym = getSymCompat(artPth,
+        classLinker_loadClassSym = HookUtils::getSymCompat(artPth,
                                                 "_ZN3art11ClassLinker9LoadClassEPNS_6ThreadERKNS_7DexFileERKNS3_8ClassDefENS_6HandleINS_6mirror5ClassEEE");
     }
 
@@ -52,7 +52,7 @@ HOOK_DEF(void*, FindClass, void *LinkerThis, void *self, const char *descriptor,
 void into_classlinker_findclass(char *art) {
 
 
-    void *classLinker_findclass = getSymCompat(art,
+    void *classLinker_findclass = HookUtils::getSymCompat(art,
                                                "_ZN3art11ClassLinker9FindClassEPNS_6ThreadEPKcNS_6HandleINS_6mirror11ClassLoaderEEE");
 
 
@@ -95,11 +95,11 @@ HOOK_DEF(void*, DefineClass, void *classlinker_this,
 
 
 void into_classlinker_DefineClass(char *art) {
-    void *classLinker_DefineClass = getSymCompat(art,
+    void *classLinker_DefineClass = HookUtils::getSymCompat(art,
                                                  "_ZN3art11ClassLinker11DefineClassEPNS_6ThreadEPKcjNS_6HandleINS_6mirror11ClassLoaderEEERKNS_7DexFileERKNS9_8ClassDefE");
 
     if (classLinker_DefineClass == nullptr) {
-        classLinker_DefineClass = getSymCompat(art,
+        classLinker_DefineClass = HookUtils::getSymCompat(art,
                                                "_ZN3art11ClassLinker11DefineClassEPNS_6ThreadEPKcjNS_6HandleINS_6mirror11ClassLoaderEEERKNS_7DexFileERKNS_3dex8ClassDefE");
     }
     if (classLinker_DefineClass != nullptr) {
@@ -133,10 +133,10 @@ HOOK_DEF(void*, SetupClass,
 
 
 void into_classlinker_SetupClass(char *art) {
-    void *classLinker_SetupClass = getSymCompat(art,
+    void *classLinker_SetupClass = HookUtils::getSymCompat(art,
                                                 "_ZN3art11ClassLinker10SetupClassERKNS_7DexFileERKNS1_8ClassDefENS_6HandleINS_6mirror5ClassEEEPNS8_11ClassLoaderE");
     if (classLinker_SetupClass == nullptr) {
-        classLinker_SetupClass = getSymCompat(art,
+        classLinker_SetupClass = HookUtils::getSymCompat(art,
                                               "_ZN3art11ClassLinker10SetupClassERKNS_7DexFileERKNS_3dex8ClassDefENS_6HandleINS_6mirror5ClassEEENS_6ObjPtrINS9_11ClassLoaderEEE");
     }
 

@@ -22,7 +22,7 @@ bool disable_profile_saver() {
     }
     //LOGE("start disable_profile_saver ")
     // MIUI moment, see https://github.com/canyie/pine/commit/ef0f5fb08e6aa42656065e431c65106b41f87799
-    auto process_profiling_info = getSymCompat(getlibArtPath().c_str(),
+    auto process_profiling_info = HookUtils::getSymCompat(getlibArtPath().c_str(),
                             "_ZN3art12ProfileSaver20ProcessProfilingInfoEbPtb");
     if (!process_profiling_info) {
         const char *symbol;
@@ -36,7 +36,7 @@ bool disable_profile_saver() {
             // https://android.googlesource.com/platform/art/+/android12-release/runtime/jit/profile_saver.cc#823
             symbol = "_ZN3art12ProfileSaver20ProcessProfilingInfoEbbPt";
         }
-        process_profiling_info = getSymCompat(getlibArtPath().c_str(),symbol);
+        process_profiling_info = HookUtils::getSymCompat(getlibArtPath().c_str(),symbol);
     }
 
     if (!process_profiling_info) {

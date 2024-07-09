@@ -22,7 +22,7 @@
 // Created by caikelun on 2020-10-04.
 
 //
-// xDL version: 2.0.0
+// xDL version: 2.1.1
 //
 // xDL is an enhanced implementation of the Android DL series functions.
 // For more information, documentation, and the latest version please check:
@@ -39,7 +39,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-//https://github.com/hexhacking/xDL/blob/master/README.zh-CN.md
+
 typedef struct {
   // same as Dl_info:
   const char *dli_fname;  // Pathname of shared object that contains address.
@@ -62,53 +62,13 @@ typedef struct {
 //
 #define XDL_TRY_FORCE_LOAD    0x01
 #define XDL_ALWAYS_FORCE_LOAD 0x02
-
-struct SymInfo;
-class SymForeachCallBack;
-
-class SymForeachCallBack {
-public:
-    virtual void findSym(SymInfo* info) const = 0;
-protected:
-};
-struct SymInfo{
-    /**
-     * 函数地址
-     */
-    void* addr;
-    /**
-     * 函数名
-     */
-    char* sym;
-    /**
-     * 函数长度
-    */
-    uint symLen = 0;
-};
-void xdl_sym_foreach(void *handle,SymForeachCallBack* callback);
-//根据 flags 参数值的不同，xdl_open() 的行为会有一些差异：
-//XDL_DEFAULT: 如果动态库已经被加载到内存中了，xdl_open() 不会再使用 dlopen() 加载它。（但依然会返回一个有效的 handle）
-//XDL_TRY_FORCE_LOAD: 如果动态库还没有被加载到内存中，xdl_open() 将尝试使用 dlopen() 加载它。
-//XDL_ALWAYS_FORCE_LOAD: xdl_open() 将总是使用 dlopen() 加载动态库。
-
 void *xdl_open(const char *filename, int flags);
 void *xdl_close(void *handle);
-
-//如果 symbol_size 参数不为 NULL，它将被赋值为“符号对应的内容在 ELF 中占用的字节数
 void *xdl_sym(void *handle, const char *symbol, size_t *symbol_size);
 void *xdl_dsym(void *handle, const char *symbol, size_t *symbol_size);
 
-void *getSymCompat(const char *filepath,const char *symbol);
-void *getSymCompatForHandler(void *handler,const char *symbol);
-
-// xdl_addr() 不仅能查询动态链接符号，还能查询调试符号。
+//
 // Enhanced dladdr().
-// void *cache = NULL;
-// xdl_info_t info;
-// xdl_addr(addr_1, &info, &cache);
-// xdl_addr(addr_2, &info, &cache);
-// xdl_addr(addr_3, &info, &cache);
-// xdl_addr_clean(&cache);
 //
 int xdl_addr(void *addr, xdl_info_t *info, void **cache);
 void xdl_addr_clean(void **cache);
