@@ -15,6 +15,7 @@ add_library(
         JnitraceForC.cpp
         StringHandler.cpp
         TracerBase.cpp
+        StringHooker.cpp
 )
 
 target_link_libraries(

@@ -46,8 +46,14 @@
 /**
  * hook string append
  */
-class StringHooker {
-
+class StringHooker : TracerBase {
+public:
+    void init(JNIEnv *env,
+              bool hookAll,
+              const std::list<std::string> &forbid_list,
+              const std::list<std::string> &filter_list,
+              std::ofstream *os) override;
+    void stop() override;
 };
 
 

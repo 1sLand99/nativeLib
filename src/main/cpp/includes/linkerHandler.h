@@ -25,6 +25,8 @@ namespace ZhenxiRunTime {
             /**
              * so load 之后
              * @param name so path
+             * @redirect_path redirect so path
+             * @ret dlopen ret
              */
             virtual void loadAfter(const char *path,const char *redirect_path, void *ret) const = 0;
 

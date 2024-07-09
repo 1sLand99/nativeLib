@@ -14,6 +14,7 @@
 
 class StringHandler :TracerBase{
 public:
+    StringHandler();
     void init(JNIEnv *env,
               bool hookAll,
               const std::list<std::string> &forbid_list,

@@ -7,7 +7,6 @@
 #include "TracerBase.h"
 
 
-typedef size_t Addr;
 
 
 class Jnitrace : TracerBase{

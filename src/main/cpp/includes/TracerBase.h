@@ -73,8 +73,6 @@
 
 
 
-#define HOOK_SYMBOL_DOBBY(handle, func)  \
-  hook_libc_function(handle, #func, (void*) new_##func, (void**) &orig_##func); \
 
 //这块是为了防止他把一个void*当成char*去strlen挂掉
 # define IS_NULL(value) value \
@@ -87,10 +85,13 @@
      }
 
 
-
+/**
+ * address = 符号地址-基地址
+ */
 #define GET_ADDRESS \
- auto address = TracerBase::getAddressHex((void*)((char *) \
-            __builtin_return_address(0) - ((size_t) info.dli_fbase))); \
+ void* address_offset = (void*)((char *)info.dli_saddr - (size_t) info.dli_fbase);                   \
+ auto address = TracerBase::getAddressHex(address_offset);\
+
 
 
 # define CLEAN_APPEND(buff, value, size) \
@@ -131,12 +132,14 @@ public:
       * 是否监听第二级返回结果。
     */
     static bool isHookSecondRet;
-
+    static void write(char *msg, Dl_info info);
     static void write(const char *msg, Dl_info info);
     static void write(const std::string &msg, Dl_info info);
+    static void write(const std::wstring &msg, Dl_info info);
+    static void write(const std::wstring *msg, Dl_info info);
     static void write(const std::string &msg);
     static void write(const std::string &msg, [[maybe_unused]] bool isApart);
-
+    static void write(std::string &msg, Dl_info info);
     static char *getAddressHex(void *ptr);
 
     static bool isLister(int dladd_ret, Dl_info *info);
@@ -144,6 +147,11 @@ public:
     static bool isAppFile(const char *path);
 
     static std::string getFileNameForPath(const char *path);
+
+private:
+    static void write_inline(const char* msg,Dl_info info);
+    static void write_inline(const char* msg,Dl_info info,bool isApart);
+
 };
 
 
