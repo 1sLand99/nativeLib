@@ -12,12 +12,12 @@
 using namespace std;
 
 
+bool TracerBase::isInited = false;
 bool TracerBase::isHookAll = false;
 std::ofstream *TracerBase::traceOs = {};
 std::list<string> TracerBase::filterSoList = {};
 std::list<string> TracerBase::forbidSoList = {};
 bool TracerBase::isSave = false;
-string TracerBase::match_so_name = {};
 /**
  * 是否监听第二级返回结果。
 */
@@ -29,38 +29,47 @@ bool TracerBase::isHookSecondRet;
 
 
 
-void TracerBase::write_inline(const char *msg, Dl_info info) {
+void TracerBase::write_inline(const char *msg, std::list<TracerBase::stack_info> info) {
     write_inline(msg, info, false);
 }
 
-void TracerBase::write_inline(const char *msg, Dl_info info, bool isApart) {
+void TracerBase::write_inline(const char *msg,
+                              std::list<TracerBase::stack_info> info,
+                              bool isApart) {
     if (msg == nullptr || my_strlen(msg) == 0) {
         return;
     }
+    //内容输出 ...
+    //[所属ELF]{所属函数地址名称}<具体函数地址>
+    //[所属ELF]{所属函数地址名称}<具体函数地址>
+    //[所属ELF]{所属函数地址名称}<具体函数地址>
+    //[所属ELF]{所属函数地址名称}<具体函数地址>
+    //...
+    //----------------------------------------------
     string buff = {};
+    buff.append(msg).append("\n");
     //如果是分割线则不需要保存具体的地址
     if (!isApart) {
-        buff.append("[");
-        buff.append(match_so_name);
-        buff.append("]");
-//        const char *sname = info.dli_sname;
-//        if(my_strlen(sname)>0){
-//            buff.append("{");
-//            buff.append(sname);
-//            buff.append("}");
-//        }
-    }
-    if (!isApart) {
-        if ((size_t) info.dli_fbase > 0) {
-            GET_ADDRESS
-            if (address != nullptr) {
+        for (std::list<TracerBase::stack_info>::iterator
+                    it = info.begin(); it != info.end(); ++it) {
+            buff.append("[");
+            buff.append(getFileNameForPath(it->stack_info.dli_fname));
+            buff.append("]");
+            const char *sname = it->stack_info.dli_sname;
+            if(my_strlen(sname)>0){
+                buff.append("{");
+                buff.append(sname);
+                buff.append("}");
+            }
+            if (it->ptr != nullptr) {
                 buff.append("<");
-                buff.append(address);
+                buff.append(getAddressHex((char*)it->ptr-(size_t)it->stack_info.dli_fbase));
                 buff.append(">");
             }
+            buff.append("\n");
         }
+        buff.append("-----------------------------------").append("\n");
     }
-    buff.append(msg);
     if (isSave) {
         if (traceOs != nullptr) {
             (*traceOs) << buff;
@@ -71,43 +80,44 @@ void TracerBase::write_inline(const char *msg, Dl_info info, bool isApart) {
 
 /**
  * 第二个参数标识当前是否是分隔符
+ * 如果是分隔符是没有调用栈的。
  */
 void TracerBase::write(const std::string &msg, [[maybe_unused]] bool isApart) {
-    Dl_info info = {};
+    std::list<TracerBase::stack_info> info = {};
     write_inline(msg.c_str(), info, isApart);
 }
 
 void TracerBase::write(const std::string &msg) {
-    Dl_info info = {};
+    std::list<TracerBase::stack_info> info = {};
     write_inline(msg.c_str(), info);
 }
 
-void TracerBase::write(const std::wstring &msg, Dl_info info) {
+void TracerBase::write(const std::wstring &msg, std::list<TracerBase::stack_info> info) {
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
     auto ret = converter.to_bytes(msg);
     write_inline(ret.c_str(), info);
 }
 
-void TracerBase::write(const std::wstring *msg, Dl_info info) {
+void TracerBase::write(const std::wstring *msg, std::list<TracerBase::stack_info> info) {
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
     auto ret = converter.to_bytes(*msg);
     write_inline(ret.c_str(), info);
 }
 
-void TracerBase::write(std::string &msg, Dl_info info) {
+void TracerBase::write(std::string &msg, std::list<TracerBase::stack_info> info) {
     write_inline(msg.c_str(), info);
 }
 
 
-void TracerBase::write(const std::string &msg, Dl_info info) {
+void TracerBase::write(const std::string &msg, std::list<TracerBase::stack_info> info) {
     write_inline(msg.c_str(), info);
 }
 
-void TracerBase::write(char *msg, Dl_info info) {
+void TracerBase::write(char *msg, std::list<TracerBase::stack_info> info) {
     write_inline(msg, info);
 }
 
-void TracerBase::write(const char *msg, Dl_info info) {
+void TracerBase::write(const char *msg, std::list<TracerBase::stack_info> info) {
     write_inline(msg, info);
 }
 
@@ -125,10 +135,7 @@ char *TracerBase::getAddressHex(void *ptr) {
 }
 
 
-bool TracerBase::isLister(int dladd_ret, Dl_info *info) {
-    if (dladd_ret == 0) {
-        return false;
-    }
+bool TracerBase::isLister(Dl_info *info) {
     if (info == nullptr) {
         return false;
     }
@@ -151,14 +158,12 @@ bool TracerBase::isLister(int dladd_ret, Dl_info *info) {
     }
     //如果是监听全部直接返回true
     if (isHookAll) {
-        match_so_name = {};
         return true;
     } else {
         //根据关键字进行过滤
         for (const auto &filter: filterSoList) {
             //默认监听一级
             if (my_strstr(name, filter.c_str()) != nullptr) {
-                match_so_name = getFileNameForPath(name);
                 return true;
             }
         }
@@ -166,7 +171,7 @@ bool TracerBase::isLister(int dladd_ret, Dl_info *info) {
     }
 }
 
-string TracerBase::getFileNameForPath(const char *path) {
+inline string TracerBase::getFileNameForPath(const char *path) {
     if (path == nullptr) {
         return {};
     }

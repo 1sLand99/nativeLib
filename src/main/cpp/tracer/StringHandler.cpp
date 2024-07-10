@@ -506,6 +506,10 @@ void StringHandler::init(JNIEnv *env,
                          const std::list<std::string> &forbid_list,
                          const std::list<std::string> &filter_list,
                          std::ofstream *os) {
+    if(isInited){
+        return;
+    }
+    isInited = true;
     isHookAll = hookAll;
     LOGE("start StringHandler trace is hook all %s", isHookAll ? "true" : "false")
     for (const std::string &str: forbid_list) {

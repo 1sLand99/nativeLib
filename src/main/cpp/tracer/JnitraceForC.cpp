@@ -8,15 +8,15 @@
 #include "TracerBase.h"
 
 
-jmethodID Jnitrace::object_method_id_toString = nullptr;
+[[maybe_unused]] jmethodID Jnitrace::object_method_id_toString = nullptr;
 /**
  * 在打印枚举的时候发现可能会被当成object去打印
  * 导致报错
  * JNI DETECTED ERROR IN APPLICATION: use of invalid jobject
  * 尝试在Java去打印
  */
-jclass Jnitrace::auxiliary_clazz = nullptr;
-jmethodID Jnitrace::auxiliary_clazz_method_id_toString = nullptr;
+[[maybe_unused]] jclass Jnitrace::auxiliary_clazz = nullptr;
+[[maybe_unused]] jmethodID Jnitrace::auxiliary_clazz_method_id_toString = nullptr;
 
 
 #define HOOK_JNITRACE(env, func) \
@@ -40,6 +40,10 @@ jmethodID Jnitrace::auxiliary_clazz_method_id_toString = nullptr;
 
 #define GET_JOBJECT_INFO(env, obj, methodname, info) \
             Jnitrace::getJObjectInfo(env,obj,methodname,info);\
+
+
+
+
 
 
 #define GET_METHOD_INFO_ARGS(env, obj, methodid, args, isStatic, info) Jnitrace::getArgsInfo(env,obj,methodid,args,isStatic,info);
@@ -345,7 +349,7 @@ JNI_HOOK_DEF(jdouble, CallStaticDoubleMethodV, JNIEnv *env, jclass obj, jmethodI
 }
 
 
-void Jnitrace::getJObjectInfo(JNIEnv *env, jobject obj, const string &methodname, Dl_info info) {
+void Jnitrace::getJObjectInfo(JNIEnv *env, jobject obj, const string &methodname, std::list<TracerBase::stack_info> info) {
     if (obj == nullptr) {
         return;
     }
@@ -373,7 +377,7 @@ void Jnitrace::getJObjectInfoInternal(JNIEnv *env,
                                       string message,
                                       bool isPrintClassinfo,
                                       const char *classInfo,
-                                      Dl_info info) {
+                                      std::list<TracerBase::stack_info> info) {
 
     if (obj == nullptr) {
         return;
@@ -521,7 +525,7 @@ void Jnitrace::getJObjectInfoInternal(JNIEnv *env,
 
 
 void Jnitrace::getArgsInfo(JNIEnv *env, jobject obj, jmethodID jmethodId,
-                           va_list args, bool isStatic, Dl_info info
+                           va_list args, bool isStatic, std::list<TracerBase::stack_info> info
 ) {
 
     if (obj == nullptr) {
@@ -1256,6 +1260,10 @@ void Jnitrace::init(JNIEnv *env,
                     const std::list<string> &forbid_list,
                     const std::list<string> &filter_list,
                     std::ofstream *os) {
+    if(isInited){
+        return;
+    }
+    isInited = true;
     isHookAll = hookAll;
     LOGE("start jni trace is hook all %s", isHookAll ? "true" : "false")
     for (const std::string &str: forbid_list) {

@@ -127,8 +127,9 @@ STRING_HOOKER_HOOK_DEF(std::string &, append_1, const std::string &str, size_t p
  * 1、_ZNSt6__ndk112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEE23__append_forward_unsafeINS_11__wrap_iterIPcEEEERS5_T_SB_
  * 2、std::string::__append_forward_unsafe<std::__ndk1::__wrap_iter<char*> >(std::__ndk1::__wrap_iter<char*>, std::__ndk1::__wrap_iter<char*>)
  */
-STRING_HOOKER_HOOK_DEF(std::string &, append_2, std::__ndk1::__wrap_iter<char *> iter1,
-                       std::__ndk1::__wrap_iter<char *> iter2) {
+STRING_HOOKER_HOOK_DEF(std::string &, append_2,
+                       [[maybe_unused]] std::__ndk1::__wrap_iter<char *> iter1,
+                       [[maybe_unused]] std::__ndk1::__wrap_iter<char *> iter2) {
     std::string &ret = string_hooker_orig_append_2(iter1, iter2);
     DL_INFO
     IS_MATCH
@@ -166,7 +167,9 @@ STRING_HOOKER_HOOK_DEF(std::string &, append_4, const char *s) {
  * 1、_ZNSt6__ndk112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEE23__append_forward_unsafeIPcEERS5_T_S9_
  * 2、std::string::__append_forward_unsafe<char*>(char*, char*)
  */
-STRING_HOOKER_HOOK_DEF(std::string &, append_5, char *iter1, char *iter2) {
+STRING_HOOKER_HOOK_DEF(std::string &, append_5,
+                       [[maybe_unused]]char *iter1,
+                       [[maybe_unused]]char *iter2) {
     std::string &ret = string_hooker_orig_append_5(iter1, iter2);
     DL_INFO
     IS_MATCH
@@ -597,6 +600,10 @@ void StringHooker::init(JNIEnv *env,
                         const std::list<std::string> &forbid_list,
                         const std::list<std::string> &filter_list,
                         std::ofstream *os) {
+    if(isInited){
+        return;
+    }
+    isInited = true;
     isHookAll = hookAll;
     LOGE("start StringHooker trace is hook all %s", isHookAll ? "true" : "false")
     for (const std::string &str: forbid_list) {
