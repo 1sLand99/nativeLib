@@ -2,6 +2,8 @@
 
 #include "JnitraceForC.h"
 
+#include <utility>
+
 #include "mylibc.h"
 #include "HookUtils.h"
 #include "ZhenxiLog.h"
@@ -360,7 +362,7 @@ void Jnitrace::getJObjectInfo(JNIEnv *env, jobject obj, const string &methodname
     const string temptag =
             "<<<<<------------------" + methodname + " --------------------->>>>>\n";
     WRITE(temptag, true);
-    Jnitrace::getJObjectInfoInternal(env, obj, "invoke this object", true, nullptr, info);
+    Jnitrace::getJObjectInfoInternal(env, obj, "invoke this object", true, nullptr, std::move(info));
 }
 
 /**
@@ -377,7 +379,7 @@ void Jnitrace::getJObjectInfoInternal(JNIEnv *env,
                                       string message,
                                       bool isPrintClassinfo,
                                       const char *classInfo,
-                                      std::list<TracerBase::stack_info> info) {
+                                      const std::list<TracerBase::stack_info>& info) {
 
     if (obj == nullptr) {
         return;
@@ -525,7 +527,7 @@ void Jnitrace::getJObjectInfoInternal(JNIEnv *env,
 
 
 void Jnitrace::getArgsInfo(JNIEnv *env, jobject obj, jmethodID jmethodId,
-                           va_list args, bool isStatic, std::list<TracerBase::stack_info> info
+                           va_list args, bool isStatic, const std::list<TracerBase::stack_info>& info
 ) {
 
     if (obj == nullptr) {
@@ -1261,6 +1263,7 @@ void Jnitrace::init(JNIEnv *env,
                     const std::list<string> &filter_list,
                     std::ofstream *os) {
     if(isInited){
+        LOGE("start JnitraceForC is inited ")
         return;
     }
     isInited = true;

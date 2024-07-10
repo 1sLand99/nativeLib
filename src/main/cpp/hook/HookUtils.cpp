@@ -91,7 +91,7 @@ void  HookUtils::startBranchTrampoline(){
 void HookUtils::setHookerModle(Hook_MODEL modle){
     HOOKUTILS_MODEL = modle;
 }
-bool HookUtils::Hooker(void *dysym, void *newrep, void **org,std::string tag) {
+bool HookUtils::Hooker(void *dysym, void *newrep, void **org,const std::string& tag) {
     LOG(ERROR) << "hook utils add hook tag >  "<<tag;
     return HookUtils::Hooker(dysym, newrep, org);
 }
@@ -185,9 +185,9 @@ void *HookUtils::getSymCompat(const char *filepath,const char *symbol){
     return sym;
 }
 void *HookUtils::getSymCompatForHandler(void *handler,const char *symbol){
-    void *sym = xdl_sym(handler, symbol, NULL);
+    void *sym = xdl_sym(handler, symbol, nullptr);
     if(sym == nullptr){
-        sym = xdl_dsym(handler, symbol, NULL);
+        sym = xdl_dsym(handler, symbol, nullptr);
     }
     if(sym == nullptr){
         LOGW("getSymCompat get sym == null %s",symbol)
@@ -265,6 +265,9 @@ void hook_libc_function(void *handle, const char *symbol, void *new_func, void *
         return;
     }
     if (!HookUtils::Hooker(addr, new_func, old_func)) {
-        LOGE(">>>>>>>>>>> io  hook %s fail !", symbol)
+        LOGE(">>>>>>>>>>> hook_libc_function  hook %s fail !", symbol)
     }
+//    else{
+//        LOGE(">>>>>>>>>>> hook_libc_function  hook %s success !", symbol)
+//    }
 }

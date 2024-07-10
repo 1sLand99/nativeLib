@@ -36,7 +36,7 @@ public:
     static void setAuxiliaryClazz(jclass clazz);
 
     static void
-    getArgsInfo(JNIEnv *env, jobject obj, jmethodID jmethodId, va_list args, bool isStatic,std::list<TracerBase::stack_info> info);
+    getArgsInfo(JNIEnv *env, jobject obj, jmethodID jmethodId, va_list args, bool isStatic,const std::list<TracerBase::stack_info>& info);
 
     static void getJObjectInfo(JNIEnv *env, jobject obj, const string &methodname,std::list<TracerBase::stack_info> info);
 
@@ -44,7 +44,7 @@ public:
 
     static void
     getJObjectInfoInternal(JNIEnv *env, jobject obj, string message, bool isPrintClassinfo,
-                           const char *classinfo,std::list<TracerBase::stack_info> info);
+                           const char *classinfo,const std::list<TracerBase::stack_info>& info);
 
     static string getJObjectClassInfo(JNIEnv *env, jobject obj);
 

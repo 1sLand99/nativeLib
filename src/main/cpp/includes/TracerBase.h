@@ -112,7 +112,7 @@
 /**
  * 目前最多支持10级调用栈
  */
-#define GET_STACK_LEVEL 5
+#define GET_STACK_LEVEL 1
 
 
 # define DL_INFO \
@@ -176,14 +176,17 @@ public:
         my_dl_info stack_info;
     };
 
-    virtual void init(JNIEnv *env,
+    void init(JNIEnv *env,
                       bool hookAll,
                       const std::list<std::string> &forbid_list,
                       const std::list<std::string> &filter_list,
-                      std::ofstream *os) = 0;
+                      std::ofstream *os) override = 0;
 
-    virtual void stop() = 0;
-    static bool isInited ;
+    void stop() override = 0;
+
+
+    bool isInited ;
+
     static bool isHookAll;
     static std::ofstream *traceOs;
     static std::list<std::string> filterSoList;
@@ -191,11 +194,10 @@ public:
     static bool isSave;
     static std::string match_so_name;
 
-
     /**
       * 是否监听第二级返回结果。
     */
-    static bool isHookSecondRet;
+    bool isHookSecondRet;
 
     static void write(char *msg, std::list<TracerBase::stack_info> info);
 

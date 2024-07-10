@@ -5,6 +5,7 @@
 #include <iostream>
 #include <locale>
 #include <codecvt>
+#include <utility>
 
 #include "TracerBase.h"
 #include "mylibc.h"
@@ -12,25 +13,19 @@
 using namespace std;
 
 
-bool TracerBase::isInited = false;
 bool TracerBase::isHookAll = false;
 std::ofstream *TracerBase::traceOs = {};
 std::list<string> TracerBase::filterSoList = {};
 std::list<string> TracerBase::forbidSoList = {};
 bool TracerBase::isSave = false;
-/**
- * 是否监听第二级返回结果。
-*/
-bool TracerBase::isHookSecondRet;
 
-//jmethodID TracerBase::object_method_id_toString = nullptr;
-//jclass TracerBase:: AuxiliaryClazz = nullptr;
-//jmethodID TracerBase:: AuxiliaryClazz_method_id_toString = nullptr;
+
+
 
 
 
 void TracerBase::write_inline(const char *msg, std::list<TracerBase::stack_info> info) {
-    write_inline(msg, info, false);
+    write_inline(msg, std::move(info), false);
 }
 
 void TracerBase::write_inline(const char *msg,
@@ -50,25 +45,28 @@ void TracerBase::write_inline(const char *msg,
     buff.append(msg).append("\n");
     //如果是分割线则不需要保存具体的地址
     if (!isApart) {
-        for (std::list<TracerBase::stack_info>::iterator
-                    it = info.begin(); it != info.end(); ++it) {
+        for (auto & it : info) {
             buff.append("[");
-            buff.append(getFileNameForPath(it->stack_info.dli_fname));
+            buff.append(getFileNameForPath(it.stack_info.dli_fname));
             buff.append("]");
-            const char *sname = it->stack_info.dli_sname;
+            const char *sname = it.stack_info.dli_sname;
             if(my_strlen(sname)>0){
                 buff.append("{");
                 buff.append(sname);
                 buff.append("}");
             }
-            if (it->ptr != nullptr) {
+            if (it.ptr != nullptr) {
                 buff.append("<");
-                buff.append(getAddressHex((char*)it->ptr-(size_t)it->stack_info.dli_fbase));
+                buff.append(getAddressHex((char*)it.ptr-(size_t)it.stack_info.dli_fbase));
                 buff.append(">");
             }
-            buff.append("\n");
+            if(info.size()>1){
+                buff.append("\n");
+            }
         }
-        buff.append("-----------------------------------").append("\n");
+        if(info.size()>1) {
+            buff.append("-----------------------------------").append("\n");
+        }
     }
     if (isSave) {
         if (traceOs != nullptr) {
@@ -95,30 +93,30 @@ void TracerBase::write(const std::string &msg) {
 void TracerBase::write(const std::wstring &msg, std::list<TracerBase::stack_info> info) {
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
     auto ret = converter.to_bytes(msg);
-    write_inline(ret.c_str(), info);
+    write_inline(ret.c_str(), std::move(info));
 }
 
 void TracerBase::write(const std::wstring *msg, std::list<TracerBase::stack_info> info) {
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
     auto ret = converter.to_bytes(*msg);
-    write_inline(ret.c_str(), info);
+    write_inline(ret.c_str(), std::move(info));
 }
 
 void TracerBase::write(std::string &msg, std::list<TracerBase::stack_info> info) {
-    write_inline(msg.c_str(), info);
+    write_inline(msg.c_str(), std::move(info));
 }
 
 
 void TracerBase::write(const std::string &msg, std::list<TracerBase::stack_info> info) {
-    write_inline(msg.c_str(), info);
+    write_inline(msg.c_str(), std::move(info));
 }
 
 void TracerBase::write(char *msg, std::list<TracerBase::stack_info> info) {
-    write_inline(msg, info);
+    write_inline(msg, std::move(info));
 }
 
 void TracerBase::write(const char *msg, std::list<TracerBase::stack_info> info) {
-    write_inline(msg, info);
+    write_inline(msg, std::move(info));
 }
 
 char *TracerBase::getAddressHex(void *ptr) {
@@ -126,7 +124,7 @@ char *TracerBase::getAddressHex(void *ptr) {
     if (ptr == nullptr) {
         return nullptr;
     }
-    uintptr_t ret = (uintptr_t) ptr;
+    auto ret = (uintptr_t) ptr;
     if (ret<=0){
         return nullptr;
     }

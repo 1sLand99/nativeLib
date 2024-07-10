@@ -460,6 +460,7 @@ void init_string_handler() {
         LOG(ERROR) << "str handler get handle == null   ";
         return;
     }
+    LOG(ERROR) << ">>>>>>>>> start init_string_handler  ";
 
     HOOK_SYMBOL_DOBBY(handle, strlen)
     //strlen buff check
@@ -507,6 +508,7 @@ void StringHandler::init(JNIEnv *env,
                          const std::list<std::string> &filter_list,
                          std::ofstream *os) {
     if(isInited){
+        LOGE("start StringHandler is inited ")
         return;
     }
     isInited = true;
@@ -540,8 +542,6 @@ void StringHandler::stop() {
     isSave = false;
 }
 
-StringHandler::StringHandler() {
-
-}
+StringHandler::StringHandler() = default;
 
 

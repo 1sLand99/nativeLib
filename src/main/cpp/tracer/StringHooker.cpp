@@ -601,6 +601,7 @@ void StringHooker::init(JNIEnv *env,
                         const std::list<std::string> &filter_list,
                         std::ofstream *os) {
     if(isInited){
+        LOGE("start StringHooker is inited ")
         return;
     }
     isInited = true;
@@ -618,12 +619,12 @@ void StringHooker::init(JNIEnv *env,
         traceOs = os;
     }
     class StringHookerCallBack : public ZhenxiRunTime::LinkerLoadCallBack {
-        void loadBefore(const char *path) const {
+        void loadBefore(const char *path) const override {
 
         }
 
-        void loadAfter(const char *path, const char *redirect_path, void *ret) const {
-            for (auto filter_item: StringHooker::filterSoList) {
+        void loadAfter(const char *path, const char *redirect_path, void *ret) const override {
+            for (const auto& filter_item: StringHooker::filterSoList) {
                 if (strcmp(filter_item.c_str(), getFileNameForPath(path).c_str()) == 0) {
                     hook_string(path);
                 }
@@ -633,6 +634,7 @@ void StringHooker::init(JNIEnv *env,
     ZhenxiRunTime::linkerHandler::init();
     ZhenxiRunTime::linkerHandler::addLinkerCallBack(new StringHookerCallBack());
     //init_string_handler();
+    LOG(INFO) << ">>>>>>>>> StringHooker hook success! ";
 }
 
 [[maybe_unused]]
